@@ -606,13 +606,7 @@ function initWeather(){
 }
 
 async function fetchWeatherByIP(){
-  try{
-    const res = await fetch('https://ip-api.com/json/?fields=lat,lon,city&lang=zh-CN');
-    const d = await res.json();
-    await fetchWeather(d.lat, d.lon, d.city);
-  }catch(e){
-    await fetchWeather(39.9042, 116.4074, '北京');
-  }
+  setWeather('🌤️','请允许定位权限','以显示实时天气',null,null);
 }
 
 async function fetchWeather(lat, lon, cityName){
@@ -620,13 +614,15 @@ async function fetchWeather(lat, lon, cityName){
     let locStr = cityName || '';
     if(!locStr){
       try{
-        const geoRes = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&accept-language=zh`);
-        const geoData = await geoRes.json();
-        const addr = geoData.address;
-        const city = addr.city||addr.town||addr.county||addr.state||'';
-        const district = addr.suburb||addr.district||'';
-        locStr = district ? `${city} · ${district}` : city;
-      }catch(e){ locStr = ''; }
+        const amapRes = await fetch(`https://restapi.amap.com/v3/geocode/regeo?location=${lon},${lat}&key=5f76fca9439244f5574772d0c2e1ce35&radius=1000&extensions=base&output=json`);
+        const amapData = await amapRes.json();
+        if(amapData.status==='1' && amapData.regeocode){
+          const addr = amapData.regeocode.addressComponent;
+          const district = addr.district||'';
+          const city = addr.city||addr.province||'';
+          locStr = district ? district : city;
+        }
+      }catch(e){ locStr = '当前位置'; }
     }
     const wRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&timezone=auto`);
     const wData = await wRes.json();
@@ -635,7 +631,7 @@ async function fetchWeather(lat, lon, cityName){
     const icon = WMO_ICON[code] || '🌤️';
     const desc = WMO_TEXT[code] || '';
     const temp = Math.round(cw.temperature);
-    setWeather(icon, locStr||'未知地点', desc, temp, code);
+    setWeather(icon, locStr||'当前位置', desc, temp, code);
   }catch(e){
     setWeather('🌤️','北京','今天也要开心哟',23,0);
   }
