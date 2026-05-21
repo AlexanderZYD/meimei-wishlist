@@ -1,0 +1,958 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>媚媚的幸福清单</title>
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;500;600&family=Ma+Shan+Zheng&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ink:#2c2118; --ink-light:#5c4a3a; --ink-faint:#9c8a7a;
+  --paper:#faf6f0; --paper-aged:#ede0cc;
+  --blush:#d4878a; --blush-light:#f0cecd; --blush-faint:#fdf4f4;
+  --seal:#b03030;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--paper);color:var(--ink);font-family:'Noto Serif SC',serif;min-height:100vh;overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:0;background-image:repeating-linear-gradient(0deg,transparent,transparent 31px,rgba(180,150,120,0.09) 31px,rgba(180,150,120,0.09) 32px);pointer-events:none;z-index:0;}
+
+.page{max-width:660px;margin:0 auto;padding:64px 44px 100px;position:relative;z-index:1;}
+.page::before{content:'';position:absolute;left:72px;top:0;bottom:0;width:1px;background:rgba(192,80,80,0.18);}
+
+/* WEATHER BAR */
+.weather-bar{display:flex;align-items:center;gap:12px;margin-bottom:28px;padding:12px 20px;background:rgba(255,255,255,0.6);border:0.5px solid var(--paper-aged);border-radius:2px;opacity:0;animation:riseIn 0.7s ease 0.05s forwards;}
+.weather-icon{font-size:22px;line-height:1;flex-shrink:0;}
+.weather-info{flex:1;min-width:0;}
+.weather-row1{display:flex;align-items:baseline;gap:8px;}
+.weather-location{font-size:10px;color:var(--ink-faint);letter-spacing:0.15em;font-weight:300;}
+.weather-temp{font-family:'Ma Shan Zheng',cursive;font-size:16px;color:var(--blush);letter-spacing:0.05em;}
+.weather-desc{font-size:11px;color:var(--ink-faint);letter-spacing:0.08em;font-weight:300;}
+.weather-nag{font-size:11.5px;color:#8a4a4a;letter-spacing:0.08em;font-weight:300;margin-top:3px;line-height:1.6;}
+
+/* HEADER */
+.header{text-align:center;margin-bottom:32px;padding-bottom:28px;border-bottom:1px solid var(--paper-aged);position:relative;opacity:0;animation:riseIn 0.9s ease 0.15s forwards;}
+.date-stamp{font-size:11px;letter-spacing:0.32em;color:var(--ink-faint);margin-bottom:16px;font-weight:300;}
+.title-main{font-family:'Ma Shan Zheng',cursive;font-size:44px;color:var(--ink);letter-spacing:0.18em;line-height:1.15;margin-bottom:12px;}
+.title-sub{font-size:11px;color:var(--ink-faint);letter-spacing:0.25em;font-weight:300;}
+.seal{position:absolute;right:0;top:50%;transform:translateY(-50%);width:54px;height:54px;border:1.5px solid var(--seal);border-radius:3px;display:flex;align-items:center;justify-content:center;color:var(--seal);font-family:'Ma Shan Zheng',cursive;font-size:12px;letter-spacing:0.1em;opacity:0.65;writing-mode:vertical-rl;padding:4px;line-height:1.2;cursor:pointer;transition:opacity 0.3s;}
+.seal:hover{opacity:1;}
+
+/* DAYS */
+.days-badge{text-align:center;margin-bottom:24px;opacity:0;animation:riseIn 0.8s ease 0.4s forwards;}
+.days-badge-inner{display:inline-flex;flex-direction:column;align-items:center;gap:4px;padding:14px 32px;border:1px solid var(--blush-light);border-radius:2px;background:var(--blush-faint);}
+.days-row{display:flex;align-items:baseline;gap:20px;}
+.days-block{text-align:center;}
+.days-num{font-family:'Ma Shan Zheng',cursive;font-size:30px;color:var(--blush);line-height:1;display:block;}
+.days-label{font-size:10px;color:#a06060;letter-spacing:0.15em;font-weight:300;display:block;margin-top:2px;}
+.days-divider{font-size:18px;color:var(--blush-light);font-weight:300;margin-bottom:4px;}
+
+/* EPIGRAPH */
+.epigraph{text-align:center;margin-bottom:32px;padding:16px 44px;border-top:1px solid rgba(180,150,120,0.28);border-bottom:1px solid rgba(180,150,120,0.28);position:relative;opacity:0;animation:riseIn 0.8s ease 0.55s forwards;}
+.epigraph::before,.epigraph::after{content:'※';position:absolute;color:var(--ink-faint);font-size:10px;top:50%;transform:translateY(-50%);}
+.epigraph::before{left:14px;}.epigraph::after{right:14px;}
+.epigraph p{font-size:13.5px;color:var(--ink-light);letter-spacing:0.18em;line-height:2;font-weight:300;}
+
+/* SUBTLE NOTE */
+.subtle-note{text-align:center;font-size:11px;color:var(--ink-faint);letter-spacing:0.18em;font-weight:300;margin-bottom:28px;opacity:0;animation:riseIn 0.8s ease 0.7s forwards;}
+
+/* PROGRESS */
+.progress-section{margin-bottom:28px;opacity:0;animation:riseIn 0.7s ease 0.85s forwards;}
+.progress-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+.progress-label{font-size:11px;color:var(--ink-faint);letter-spacing:0.12em;}
+.progress-nums{font-size:11px;color:var(--blush);letter-spacing:0.08em;}
+.progress-track{width:100%;height:3px;background:var(--paper-aged);border-radius:2px;overflow:hidden;margin-bottom:14px;}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--blush-light),var(--blush));border-radius:2px;transition:width 0.8s cubic-bezier(.4,0,.2,1);width:0%;}
+.achievements{display:flex;gap:8px;flex-wrap:wrap;}
+.badge-item{font-size:10px;padding:3px 10px;border-radius:2px;letter-spacing:0.08em;border:0.5px solid var(--paper-aged);color:var(--ink-faint);background:transparent;transition:all 0.4s;}
+.badge-item.unlocked{background:var(--blush-faint);border-color:var(--blush-light);color:#8a4040;}
+
+/* WISH LIST */
+.wish-list{list-style:none;}
+.wish-item{display:flex;align-items:flex-start;gap:14px;padding:13px 8px;border-bottom:1px solid rgba(180,150,120,0.11);cursor:pointer;transition:background 0.25s,padding-left 0.25s;opacity:0;animation:riseIn 0.5s ease both;}
+.wish-item:hover{background:rgba(212,135,138,0.04);padding-left:14px;}
+.wish-item.special{background:var(--blush-faint);border:1px solid var(--blush-light);border-radius:2px;padding:15px 18px;margin-bottom:5px;cursor:default;}
+.wish-item.special:hover{padding-left:18px;background:var(--blush-faint);}
+.wish-item.user-added{border-left:2px solid var(--blush-light);}
+
+.checkbox{width:17px;height:17px;border:1px solid var(--ink-faint);border-radius:2px;flex-shrink:0;margin-top:3px;display:flex;align-items:center;justify-content:center;transition:all 0.3s;font-size:11px;}
+.wish-item.done .checkbox{border-color:var(--blush);background:var(--blush-faint);color:var(--blush);}
+.wish-item.done .checkbox::after{content:'✓';}
+.wish-item.special .checkbox{border-color:#c07070;background:var(--blush-light);color:#c07070;}
+.wish-item.special .checkbox::after{content:'✓';}
+
+.wish-num{font-size:10px;color:var(--ink-faint);min-width:20px;margin-top:4px;letter-spacing:0.05em;font-weight:300;}
+.wish-text{font-size:14px;color:var(--ink-light);line-height:1.85;letter-spacing:0.07em;font-weight:300;flex:1;transition:all 0.35s;}
+.wish-item.done .wish-text{color:var(--ink-faint);text-decoration:line-through;text-decoration-color:var(--blush-light);}
+.wish-item.special .wish-text{color:#6a3535;font-weight:400;}
+.wish-item.special.done .wish-text{text-decoration:none;}
+
+.wish-tag{font-size:10px;color:#8a4a4a;background:var(--blush-light);padding:2px 9px;border-radius:2px;margin-top:5px;letter-spacing:0.09em;display:inline-block;}
+
+/* ADD WISH */
+.add-wish-area{margin-top:20px;padding-top:16px;border-top:1px dashed rgba(180,150,120,0.3);opacity:0;animation:riseIn 0.7s ease 1.6s forwards;}
+.add-wish-btn{display:flex;align-items:center;gap:8px;cursor:pointer;padding:10px 8px;color:var(--ink-faint);font-size:12px;letter-spacing:0.15em;font-family:'Noto Serif SC',serif;background:none;border:none;transition:color 0.2s;}
+.add-wish-btn:hover{color:var(--blush);}
+.add-wish-form{display:none;margin-top:8px;gap:8px;align-items:center;}
+.add-wish-form.open{display:flex;}
+.add-wish-input{flex:1;background:transparent;border:none;border-bottom:1px solid var(--paper-aged);padding:6px 4px;font-family:'Noto Serif SC',serif;font-size:13px;color:var(--ink-light);letter-spacing:0.08em;outline:none;font-weight:300;}
+.add-wish-input:focus{border-bottom-color:var(--blush);}
+.add-wish-input::placeholder{color:var(--ink-faint);font-size:12px;}
+.add-wish-submit{background:none;border:0.5px solid var(--blush-light);border-radius:2px;padding:5px 14px;font-family:'Noto Serif SC',serif;font-size:11px;color:#8a4a4a;cursor:pointer;letter-spacing:0.1em;transition:background 0.2s;}
+.add-wish-submit:hover{background:var(--blush-faint);}
+
+/* CAPSULE SECTION */
+.capsule-section{margin-top:36px;padding-top:20px;border-top:1px dashed rgba(180,150,120,0.3);opacity:0;animation:riseIn 0.7s ease 1.8s forwards;}
+.capsule-title{font-size:11px;color:var(--ink-faint);letter-spacing:0.2em;text-align:center;margin-bottom:16px;}
+.capsules{display:flex;flex-direction:column;gap:10px;}
+.capsule-item{display:flex;align-items:center;gap:14px;padding:14px 18px;border:0.5px solid var(--paper-aged);border-radius:2px;background:rgba(255,255,255,0.5);transition:all 0.3s;cursor:default;}
+.capsule-item.unlocked{border-color:var(--blush-light);background:var(--blush-faint);cursor:pointer;}
+.capsule-item.unlocked:hover{background:#fdeaea;}
+.capsule-envelope{font-size:22px;flex-shrink:0;}
+.capsule-info{flex:1;}
+.capsule-trigger{font-size:11px;color:var(--ink-faint);letter-spacing:0.1em;font-weight:300;}
+.capsule-status{font-size:10px;color:var(--ink-faint);letter-spacing:0.1em;margin-top:3px;}
+.capsule-item.unlocked .capsule-status{color:#c07070;}
+
+/* FOOTER */
+.footer{margin-top:56px;padding-top:28px;border-top:1px solid var(--paper-aged);text-align:center;opacity:0;animation:riseIn 0.8s ease 2s forwards;position:relative;}
+.footer-text{font-size:11px;color:var(--ink-faint);letter-spacing:0.22em;line-height:2.4;font-weight:300;}
+.footer-sig{font-family:'Ma Shan Zheng',cursive;font-size:18px;color:var(--blush);margin-top:14px;letter-spacing:0.25em;}
+.footer-dots{margin:10px 0;font-size:10px;color:var(--paper-aged);letter-spacing:0.4em;}
+/* hidden dot for secret item */
+.secret-dot{display:inline-block;width:5px;height:5px;border-radius:50%;background:rgba(212,135,138,0.25);cursor:pointer;margin-top:20px;transition:background 0.3s;}
+.secret-dot:hover{background:var(--blush-light);}
+
+/* OVERLAY + MODALS */
+.overlay{position:fixed;inset:0;background:rgba(44,33,24,0.18);z-index:99;opacity:0;pointer-events:none;transition:opacity 0.4s;}
+.overlay.show{opacity:1;pointer-events:auto;}
+
+.modal{position:fixed;top:50%;left:50%;transform:translate(-50%,-44%) scale(0.96);background:var(--paper);border:1px solid var(--paper-aged);padding:36px 40px 28px;text-align:center;z-index:100;opacity:0;pointer-events:none;transition:opacity 0.35s,transform 0.35s cubic-bezier(.34,1.56,.64,1);max-width:310px;width:88%;}
+.modal.show{opacity:1;pointer-events:auto;transform:translate(-50%,-50%) scale(1);}
+
+.modal-ornament{font-family:'Ma Shan Zheng',cursive;font-size:20px;color:var(--blush);margin-bottom:4px;letter-spacing:0.3em;}
+.modal-subtitle{font-size:11px;color:var(--ink-faint);letter-spacing:0.14em;margin-bottom:18px;font-weight:300;}
+.modal-divider{width:32px;height:1px;background:var(--paper-aged);margin:0 auto 18px;}
+.modal-quote{font-size:13.5px;color:var(--ink-light);line-height:2.1;letter-spacing:0.12em;font-weight:300;margin-bottom:10px;white-space:pre-line;}
+.modal-source{font-size:11px;color:var(--ink-faint);letter-spacing:0.15em;}
+.modal-close{margin-top:20px;font-size:10px;color:var(--ink-faint);cursor:pointer;letter-spacing:0.2em;border:none;background:none;font-family:'Noto Serif SC',serif;border-top:1px solid var(--paper-aged);padding-top:14px;width:100%;display:block;}
+.modal-close:hover{color:var(--ink-light);}
+
+/* CAPSULE MODAL */
+.capsule-letter{font-size:32px;margin-bottom:12px;}
+.capsule-from{font-size:13px;color:var(--ink-light);line-height:2;letter-spacing:0.12em;font-weight:300;white-space:pre-line;margin-bottom:8px;}
+.capsule-sig{font-family:'Ma Shan Zheng',cursive;font-size:16px;color:var(--blush);letter-spacing:0.2em;}
+
+/* SECRET MODAL */
+.secret-content{font-size:14px;color:var(--ink-light);line-height:2.2;letter-spacing:0.12em;font-weight:300;}
+.secret-note{font-size:11px;color:var(--ink-faint);margin-top:12px;letter-spacing:0.1em;}
+
+/* DIAMOND MODAL */
+.diamond-wrap{position:relative;width:100px;height:100px;margin:0 auto 16px;}
+.diamond-svg{width:100px;height:100px;animation:diamondSpin 6s linear infinite;}
+@keyframes diamondSpin{0%{filter:drop-shadow(0 0 6px #b8d4ff) drop-shadow(0 0 14px #e0c8ff);}25%{filter:drop-shadow(0 0 10px #ffd6e0) drop-shadow(0 0 22px #c8e8ff);}50%{filter:drop-shadow(0 0 8px #d4f0ff) drop-shadow(0 0 18px #ffe0f0);}75%{filter:drop-shadow(0 0 12px #e8d4ff) drop-shadow(0 0 24px #d0f4ff);}100%{filter:drop-shadow(0 0 6px #b8d4ff) drop-shadow(0 0 14px #e0c8ff);}}
+.diamond-sparkles{position:absolute;inset:0;pointer-events:none;}
+.sp{position:absolute;font-size:12px;animation:spAnim 2s ease-in-out infinite;}
+.sp:nth-child(1){top:0;left:50%;transform:translateX(-50%);animation-delay:0s;}
+.sp:nth-child(2){top:20%;right:0;animation-delay:0.4s;}
+.sp:nth-child(3){bottom:10%;right:5%;animation-delay:0.8s;}
+.sp:nth-child(4){bottom:10%;left:5%;animation-delay:1.2s;}
+.sp:nth-child(5){top:20%;left:0;animation-delay:1.6s;}
+@keyframes spAnim{0%,100%{opacity:0;transform:scale(0.5);}50%{opacity:1;transform:scale(1.2);}}
+.diamond-text{font-size:13px;color:var(--ink-light);line-height:2.1;letter-spacing:0.12em;font-weight:300;margin-bottom:8px;}
+
+/* DAYS ANIMATED */
+.days-num{font-family:'Ma Shan Zheng',cursive;font-size:30px;color:var(--blush);line-height:1;display:block;transition:transform 0.3s cubic-bezier(.34,1.56,.64,1);}
+.days-num.bump{transform:scale(1.25);}
+
+/* MUYU SECTION */
+.poke-section{margin-top:40px;padding:28px 24px 24px;border:1px dashed rgba(180,150,120,0.3);border-radius:4px;text-align:center;opacity:0;animation:riseIn 0.7s ease 2s forwards;background:rgba(250,246,240,0.6);}
+.poke-label{font-size:11px;color:var(--ink-faint);letter-spacing:0.22em;margin-bottom:5px;font-weight:300;}
+.poke-sublabel{font-size:10px;color:rgba(156,138,122,0.55);letter-spacing:0.15em;margin-bottom:22px;font-weight:300;}
+.poke-heart-wrap{display:inline-block;position:relative;cursor:pointer;margin-bottom:14px;}
+.poke-heart{display:block;user-select:none;transition:transform 0.1s;transform-origin:center 30%;}
+.poke-heart-wrap:active .poke-heart{transform:rotate(12deg) scale(0.95);}
+.poke-heart-wrap.poked .poke-heart{animation:muyuHit 0.45s cubic-bezier(.36,.07,.19,.97) forwards;}
+@keyframes muyuHit{
+  0%  {transform:rotate(0deg) translateY(0);}
+  15% {transform:rotate(-14deg) translateY(-4px);}
+  35% {transform:rotate(10deg) translateY(2px);}
+  55% {transform:rotate(-6deg) translateY(-1px);}
+  75% {transform:rotate(3deg);}
+  100%{transform:rotate(0deg);}
+}
+.poke-ripple{position:absolute;top:55%;left:50%;width:0;height:0;border-radius:50%;background:rgba(180,150,120,0.2);transform:translate(-50%,-50%);pointer-events:none;}
+.poke-ripple.go{animation:rippleOut 0.65s ease forwards;}
+@keyframes rippleOut{to{width:110px;height:110px;opacity:0;}}
+/* floating 功德 text */
+.merit-float{position:absolute;font-family:'Ma Shan Zheng',cursive;font-size:13px;color:var(--blush);pointer-events:none;top:0;left:50%;transform:translateX(-50%);opacity:0;}
+.merit-float.go{animation:meritRise 1.2s ease forwards;}
+@keyframes meritRise{0%{opacity:1;transform:translateX(-50%) translateY(0);}100%{opacity:0;transform:translateX(-50%) translateY(-44px);}}
+.poke-hint{font-size:11px;color:var(--ink-faint);letter-spacing:0.14em;margin-bottom:0;font-weight:300;min-height:16px;transition:color 0.4s;}
+.poke-count{font-size:10px;color:rgba(156,138,122,0.5);letter-spacing:0.1em;margin-top:6px;font-weight:300;}
+
+/* POKE MODAL */
+.poke-modal-icon{font-size:36px;margin-bottom:10px;}
+.poke-textarea{width:100%;background:transparent;border:none;border-bottom:1px solid var(--paper-aged);padding:8px 4px;font-family:'Noto Serif SC',serif;font-size:13px;color:var(--ink-light);letter-spacing:0.08em;outline:none;font-weight:300;resize:none;line-height:1.8;margin:12px 0 4px;}
+.poke-textarea:focus{border-bottom-color:var(--blush);}
+.poke-textarea::placeholder{color:var(--ink-faint);font-size:12px;}
+.poke-char-count{font-size:10px;color:var(--ink-faint);text-align:right;margin-bottom:14px;letter-spacing:0.05em;}
+.poke-send-btn{width:100%;padding:10px;background:var(--blush-faint);border:0.5px solid var(--blush-light);border-radius:2px;font-family:'Noto Serif SC',serif;font-size:12px;color:#8a4040;letter-spacing:0.15em;cursor:pointer;transition:background 0.2s;}
+.poke-send-btn:hover{background:var(--blush-light);}
+.poke-send-btn:disabled{opacity:0.5;cursor:default;}
+.poke-success{text-align:center;padding:8px 0;}
+.poke-success-icon{font-size:32px;margin-bottom:8px;}
+.poke-success-text{font-size:13px;color:var(--ink-light);letter-spacing:0.12em;line-height:2;font-weight:300;}
+
+/* PETALS */
+.petals{position:fixed;inset:0;pointer-events:none;z-index:98;overflow:hidden;}
+.petal{position:absolute;top:-24px;animation:petalFall linear forwards;opacity:0;}
+@keyframes petalFall{0%{transform:translateY(0) rotate(0deg) scale(1);opacity:0.9;}80%{opacity:0.7;}100%{transform:translateY(105vh) rotate(480deg) scale(0.5);opacity:0;}}
+
+@keyframes riseIn{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:translateY(0);}}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- WEATHER -->
+  <div class="weather-bar" id="weatherBar">
+    <div class="weather-icon" id="weatherIcon">☁️</div>
+    <div class="weather-info">
+      <div class="weather-row1">
+        <span class="weather-location" id="weatherLocation">获取位置中…</span>
+        <span class="weather-temp" id="weatherTemp"></span>
+        <span class="weather-desc" id="weatherDesc"></span>
+      </div>
+      <div class="weather-nag" id="weatherNag"></div>
+    </div>
+  </div>
+
+  <!-- HEADER -->
+  <header class="header">
+    <div class="date-stamp">写于 二〇二五年 · 五月二十日</div>
+    <h1 class="title-main">媚媚的幸福清单</h1>
+    <p class="title-sub">三十件 · 关于美好的事</p>
+    <div class="seal" id="sealBtn" title="">已阅<br>记下</div>
+  </header>
+
+  <!-- DAYS -->
+  <div class="days-badge">
+    <div class="days-badge-inner">
+      <div class="days-row">
+        <div class="days-block">
+          <span class="days-num" id="daysKnow">—</span>
+          <span class="days-label">天 · 我们相识</span>
+        </div>
+        <span class="days-divider">|</span>
+        <div class="days-block">
+          <span class="days-num" id="daysTogether">—</span>
+          <span class="days-label">天 · 我们在一起</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- EPIGRAPH -->
+  <div class="epigraph">
+    <p>顺利时要敬畏，不顺时要坚守</p>
+  </div>
+
+  <!-- SPECIAL NOTE subtle -->
+  <div class="subtle-note">第二十九条与第三十条，我已经替你完成了</div>
+
+  <!-- PROGRESS -->
+  <div class="progress-section">
+    <div class="progress-header">
+      <span class="progress-label">愿望完成进度</span>
+      <span class="progress-nums"><span id="doneCount">2</span> / <span id="totalCount">30</span></span>
+    </div>
+    <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+    <div class="achievements">
+      <span class="badge-item" id="badge10">初心 · 完成10条</span>
+      <span class="badge-item" id="badge20">半程 · 完成20条</span>
+      <span class="badge-item" id="badgeAll">圆满 · 全部完成</span>
+    </div>
+  </div>
+
+  <!-- WISH LIST -->
+  <ul class="wish-list" id="wishList"></ul>
+
+  <!-- ADD WISH -->
+  <div class="add-wish-area">
+    <button class="add-wish-btn" id="addWishBtn" onclick="toggleAddForm()">
+      <span style="font-size:14px;color:var(--blush);">＋</span> 写下新的愿望
+    </button>
+    <div class="add-wish-form" id="addWishForm">
+      <input class="add-wish-input" id="addWishInput" placeholder="在平凡的日子里，还想要……" maxlength="40" />
+      <button class="add-wish-submit" onclick="submitWish()">记下</button>
+    </div>
+  </div>
+
+  <!-- TIME CAPSULES -->
+  <div class="capsule-section">
+    <div class="capsule-title">· 时光信封 ·</div>
+    <div class="capsules" id="capsulesContainer"></div>
+  </div>
+
+  <!-- MUYU SECTION -->
+  <div class="poke-section" id="pokeSection">
+    <div class="poke-label">· 想他了就敲敲木鱼 ·</div>
+    <div class="poke-sublabel">这是我们之间的小秘密</div>
+    <div class="poke-heart-wrap" id="pokeHeartWrap" onclick="onPokeClick()">
+      <!-- wooden fish SVG -->
+      <svg class="poke-heart" id="pokeHeart" width="80" height="80" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <radialGradient id="wg1" cx="40%" cy="35%" r="60%">
+            <stop offset="0%" stop-color="#c8956a"/>
+            <stop offset="55%" stop-color="#a0693e"/>
+            <stop offset="100%" stop-color="#7a4a28"/>
+          </radialGradient>
+          <radialGradient id="wg2" cx="35%" cy="30%" r="50%">
+            <stop offset="0%" stop-color="#d4a070" stop-opacity="0.7"/>
+            <stop offset="100%" stop-color="#c8956a" stop-opacity="0"/>
+          </radialGradient>
+        </defs>
+        <!-- body -->
+        <ellipse cx="40" cy="46" rx="26" ry="20" fill="url(#wg1)"/>
+        <!-- shine -->
+        <ellipse cx="34" cy="38" rx="10" ry="7" fill="url(#wg2)"/>
+        <!-- tail fin -->
+        <path d="M64,38 Q76,28 74,46 Q76,54 64,54 Q70,46 64,38Z" fill="#9a6035"/>
+        <!-- mouth slot -->
+        <ellipse cx="17" cy="46" rx="5" ry="3.5" fill="#5a3018"/>
+        <!-- eye -->
+        <circle cx="24" cy="40" r="3.5" fill="#3a1c08"/>
+        <circle cx="25" cy="39" r="1.2" fill="rgba(255,255,255,0.6)"/>
+        <!-- scale lines -->
+        <path d="M36,34 Q42,30 48,34" stroke="#8a5528" stroke-width="1" fill="none" stroke-linecap="round" opacity="0.5"/>
+        <path d="M32,40 Q40,35 48,40" stroke="#8a5528" stroke-width="1" fill="none" stroke-linecap="round" opacity="0.4"/>
+        <path d="M34,47 Q42,43 50,47" stroke="#8a5528" stroke-width="1" fill="none" stroke-linecap="round" opacity="0.35"/>
+        <!-- top fin -->
+        <path d="M35,26 Q40,18 46,26" stroke="#9a6035" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+        <!-- mallet handle -->
+        <rect x="52" y="8" width="5" height="22" rx="2.5" fill="#b07840" transform="rotate(20,54,19)"/>
+        <!-- mallet head -->
+        <ellipse cx="57" cy="10" rx="7" ry="5" fill="#c89060" transform="rotate(20,57,10)"/>
+        <ellipse cx="56" cy="9" rx="4" ry="3" fill="#d4a070" opacity="0.5" transform="rotate(20,56,9)"/>
+      </svg>
+      <div class="poke-ripple" id="pokeRipple"></div>
+      <div class="merit-float" id="meritFloat">功德 +1</div>
+    </div>
+    <div class="poke-hint" id="pokeHint">敲一下，他就知道你在想他了</div>
+    <div class="poke-count" id="pokeCount"></div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <p class="footer-text">二〇二五 · 五月 · 二十六日</p>
+    <div class="footer-dots">· · ·</div>
+    <p class="footer-text">愿你清单上的每一件事<br>都能一一实现</p>
+    <p class="footer-sig">与你同在</p>
+    <br>
+    <span class="secret-dot" id="secretDot" title=""></span>
+  </footer>
+
+</div>
+
+<!-- OVERLAYS -->
+<div class="overlay" id="overlay" onclick="closeModal()"></div>
+
+<!-- CELEBRATE MODAL -->
+<div class="modal" id="celebModal">
+  <div class="modal-ornament">✦ ✦ ✦</div>
+  <div class="modal-subtitle" id="celebWish"></div>
+  <div class="modal-divider"></div>
+  <p class="modal-quote" id="celebQuote"></p>
+  <p class="modal-source" id="celebSource"></p>
+  <button class="modal-close" onclick="closeModal()">轻触此处，继续完成清单</button>
+</div>
+
+<!-- CAPSULE MODAL -->
+<div class="modal" id="capsuleModal">
+  <div class="capsule-letter">💌</div>
+  <div class="modal-ornament" id="capTitle"></div>
+  <div class="modal-divider"></div>
+  <p class="capsule-from" id="capContent"></p>
+  <p class="capsule-sig">— 嘟教授</p>
+  <button class="modal-close" onclick="closeModal()">— 轻触关闭 —</button>
+</div>
+
+<!-- SECRET MODAL (item 0) -->
+<div class="modal" id="secretModal">
+  <div class="modal-ornament">第 〇 条</div>
+  <div class="modal-divider"></div>
+  <p class="secret-content">和她一起，<br>慢慢把愿望都变成现实</p>
+  <p class="secret-note">· 写于 2025.5.20 ·</p>
+  <button class="modal-close" onclick="closeModal()">— 轻触关闭 —</button>
+</div>
+
+<!-- POKE MODAL -->
+<div class="modal" id="pokeModal">
+  <div id="pokeModalInner">
+    <div class="poke-modal-icon">🪘</div>
+    <div class="modal-ornament" style="font-size:16px;">告诉他你现在的心情</div>
+    <div class="modal-divider"></div>
+    <textarea class="poke-textarea" id="pokeMoodInput" placeholder="此刻想对他说……（可以不写，直接发送）" maxlength="100" rows="3" oninput="updateCharCount()"></textarea>
+    <div class="poke-char-count"><span id="pokeCharNum">0</span> / 100</div>
+    <button class="poke-send-btn" id="pokeSendBtn" onclick="sendPoke()">敲他一下 🪘</button>
+  </div>
+  <div id="pokeSuccessInner" style="display:none;" class="poke-success">
+    <div class="poke-success-icon">✉️</div>
+    <p class="poke-success-text">已经悄悄敲到他了<br><span style="font-size:11px;color:var(--ink-faint);">他会知道你在想他的</span></p>
+  </div>
+  <button class="modal-close" onclick="closePokeModal()">— 轻触关闭 —</button>
+</div>
+
+<!-- DIAMOND MODAL -->
+<div class="modal" id="diamondModal">
+  <div class="diamond-wrap">
+    <svg class="diamond-svg" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="dg1" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" style="stop-color:#ffffff;stop-opacity:1"/>
+          <stop offset="30%" style="stop-color:#d4eeff;stop-opacity:1"/>
+          <stop offset="60%" style="stop-color:#e8d4ff;stop-opacity:1"/>
+          <stop offset="100%" style="stop-color:#ffd6e8;stop-opacity:1"/>
+        </linearGradient>
+        <linearGradient id="dg2" x1="100%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" style="stop-color:#c8e8ff;stop-opacity:0.9"/>
+          <stop offset="50%" style="stop-color:#ffffff;stop-opacity:0.7"/>
+          <stop offset="100%" style="stop-color:#f0d4ff;stop-opacity:0.9"/>
+        </linearGradient>
+        <linearGradient id="dg3" x1="50%" y1="0%" x2="50%" y2="100%">
+          <stop offset="0%" style="stop-color:#ffffff;stop-opacity:1"/>
+          <stop offset="100%" style="stop-color:#b8d4ff;stop-opacity:0.8"/>
+        </linearGradient>
+        <filter id="glow">
+          <feGaussianBlur stdDeviation="1.5" result="blur"/>
+          <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+      </defs>
+      <!-- crown top -->
+      <polygon points="50,8 30,32 50,26 70,32" fill="url(#dg3)" stroke="rgba(180,210,255,0.5)" stroke-width="0.5" filter="url(#glow)"/>
+      <!-- left crown -->
+      <polygon points="8,32 30,32 20,52" fill="url(#dg1)" stroke="rgba(180,210,255,0.4)" stroke-width="0.5"/>
+      <!-- right crown -->
+      <polygon points="92,32 70,32 80,52" fill="url(#dg2)" stroke="rgba(200,180,255,0.4)" stroke-width="0.5"/>
+      <!-- center top face -->
+      <polygon points="30,32 50,26 70,32 60,52 40,52" fill="url(#dg3)" stroke="rgba(200,220,255,0.5)" stroke-width="0.5" filter="url(#glow)"/>
+      <!-- bottom left -->
+      <polygon points="8,32 20,52 40,52 30,32" fill="url(#dg1)" stroke="rgba(180,200,255,0.4)" stroke-width="0.5"/>
+      <!-- bottom right -->
+      <polygon points="92,32 80,52 60,52 70,32" fill="url(#dg2)" stroke="rgba(200,180,255,0.4)" stroke-width="0.5"/>
+      <!-- lower left -->
+      <polygon points="20,52 40,52 50,92" fill="url(#dg1)" stroke="rgba(180,200,255,0.3)" stroke-width="0.5"/>
+      <!-- lower right -->
+      <polygon points="80,52 60,52 50,92" fill="url(#dg2)" stroke="rgba(200,180,255,0.3)" stroke-width="0.5"/>
+      <!-- lower center -->
+      <polygon points="40,52 60,52 50,92" fill="url(#dg3)" stroke="rgba(200,220,255,0.4)" stroke-width="0.5" filter="url(#glow)"/>
+      <!-- shine highlight -->
+      <polygon points="40,30 50,26 55,36 45,38" fill="rgba(255,255,255,0.85)" stroke="none"/>
+      <polygon points="33,38 40,36 38,44 31,44" fill="rgba(255,255,255,0.6)" stroke="none"/>
+    </svg>
+    <div class="diamond-sparkles">
+      <span class="sp">✦</span><span class="sp">✧</span><span class="sp">✦</span><span class="sp">✧</span><span class="sp">✦</span>
+    </div>
+  </div>
+  <div class="modal-ornament">圆 满</div>
+  <div class="modal-divider"></div>
+  <p class="diamond-text">你完成了所有的愿望<br>也完成了所有的美好<br><br>We wrote our own destiny,<br>and this would always happen…</p>
+  <button class="modal-close" onclick="closeModal()">— 轻触关闭 —</button>
+</div>
+
+<div class="petals" id="petals"></div>
+
+<script>
+// ── DATA ──
+const ORIGINAL_WISHES = [
+  {text:"每天都可以睡懒觉"},
+  {text:"在平凡的一天收到一束花"},
+  {text:"有很多零花钱"},
+  {text:"买到喜欢的沐浴露，香薰都是自己喜欢的味道"},
+  {text:"所有的小猫小狗都愿意靠近我"},
+  {text:"看雪", capsule:0},
+  {text:"看夕阳"},
+  {text:"在喜欢的城市散步", capsule:1},
+  {text:"出门遇到的人都超级好"},
+  {text:"在下雨天在房间吃零食追剧，可以的话打王者荣耀也行"},
+  {text:"翻看相册"},
+  {text:"一个人出远门旅游", capsule:2},
+  {text:"自己在高级酒店睡一晚"},
+  {text:"微醺之后有人照顾我"},
+  {text:"20块彩票中50"},
+  {text:"和好朋友蛋仔派对上分"},
+  {text:"大家都很喜欢我，愿意和我做朋友"},
+  {text:"暴雨天在家睡觉"},
+  {text:"化很漂亮的妆"},
+  {text:"喜欢的东西说买就买"},
+  {text:"发在抖音的作品都有人看和评论"},
+  {text:"吃小蛋糕小甜品"},
+  {text:"冬天手脚不冰凉"},
+  {text:"每次拍照都能出片"},
+  {text:"不脱妆不卡粉"},
+  {text:"好天气"},
+  {text:"发呆"},
+  {text:"有一只可爱的小猫，一只毛茸茸的大狗狗"},
+  {text:"有人看完了我的幸福清单并默默记下", pretagDone:"✓ 他做到了"},
+  {text:"有人陪我一起完成", pretagDone:"✓ 我们一起"},
+];
+
+// item 30 (index) = secret "第31条"
+const WISH_31 = {text:"We wrote our own destiny, and this would always happen…", special:true, tag:"✦ 第三十一条"};
+
+const CAPSULES = [
+  {trigger:5, label:"当你勾选「看雪」时开启", title:"给看到雪的你", content:"手手冷吗\n记得做好保暖哟！"},
+  {trigger:7, label:"当你勾选「在喜欢的城市散步」时开启", title:"给在城市里散步的你", content:"此刻的你在哪儿呢？\n几个人吖？"},
+  {trigger:11, label:"当你勾选「一个人出远门旅游」时开启", title:"给出发去远方的你", content:"玩得开心吗？\n一定要注意安全！\n照顾好自己！及时报备！"},
+];
+
+const QUOTES = [
+  {w:"愿懒觉绵长，梦里皆温柔", q:"每个人都有潜在的能量，只是很容易被习惯所掩盖，被时间所迷离。", s:"— 三毛"},
+  {w:"愿那束花，在平凡的午后抵达", q:"我将于茫茫人海中，访我唯一灵魂之伴侣。", s:"— 徐志摩"},
+  {w:"愿口袋装满，心事也装满", q:"岁月不饶人，我亦未曾饶过岁月。", s:"— 木心"},
+  {w:"愿所有香气都对你温柔", q:"不要害怕，走出去，世界比你想象的要宽广。", s:"— 三毛"},
+  {w:"愿小猫小狗都向你奔来", q:"从前慢，一生只够爱一个人。", s:"— 木心"},
+  {w:"愿你看见的雪，又轻又白", q:"每想你一次，天上飘落一粒沙，从此形成了撒哈拉。", s:"— 三毛"},
+  {w:"愿夕阳恰好，你也恰好在场", q:"记得当时年纪小，你爱谈天我爱笑。", s:"— 方令孺"},
+  {w:"愿每一条街都像是为你铺开的", q:"流浪是一种心境，不一定要走很远的路。", s:"— 三毛"},
+  {w:"愿出门遇见的都是好人", q:"你是四月早天里的云烟，黄昏吹着风的软。", s:"— 林徽因"},
+  {w:"愿雨声替你挡住所有烦扰", q:"轻轻的我走了，正如我轻轻的来。", s:"— 徐志摩"},
+  {w:"愿相册里每一张都让你微笑", q:"我爱你，与你无关。", s:"— 木心"},
+  {w:"愿远行时，风也顺着你走", q:"一个人至少拥有一个梦想，有一个理由去坚强。", s:"— 三毛"},
+  {w:"愿那一晚，睡得格外香甜", q:"读书多了，容颜自然改变。许多时候，自己可能以为许多看过的书籍都成过眼烟云，不复记忆，其实它们仍是潜在的。", s:"— 三毛"},
+  {w:"愿微醺之后，有人把你护好", q:"一个人隐居，两个人热闹。", s:"— 木心"},
+  {w:"愿好运悄悄跟着你", q:"生命不在于长短，而在于是否精彩。", s:"— 三毛"},
+  {w:"愿和好友一起胜利的欢呼声传得很远", q:"青春是一本太仓促的书，我们含着泪，一读再读。", s:"— 席慕蓉"},
+  {w:"愿世界对你报以同等的温柔", q:"如果有来生，要做一棵树，站成永恒。", s:"— 三毛"},
+  {w:"愿暴雨声成为最好的催眠曲", q:"心若没有栖息的地方，到哪里都是在流浪。", s:"— 三毛"},
+  {w:"愿镜子里的你让自己心动", q:"你是人间四月天。", s:"— 林徽因"},
+  {w:"愿喜欢的东西都能拥有", q:"生命里有一些人与一些事，你明知意义不大，但仍然要热情认真地去做。", s:"— 三毛"},
+  {w:"愿每条视频都有人驻足停留", q:"岁月不饶人，我亦未曾饶过岁月。", s:"— 木心"},
+  {w:"愿甜品永远甜，热量永远不算", q:"快乐是人生中最重要的事，其他的可以慢慢来。", s:"— 三毛"},
+  {w:"愿冬天对你格外温柔", q:"愿你在被打击时记起你的珍贵，抵抗恶意；愿你在迷茫时坚信你的珍贵。", s:"— 董卿"},
+  {w:"愿每一张照片都是惊喜", q:"美丽的女人，美在眼睛里透出来的那股子劲。", s:"— 董卿"},
+  {w:"愿妆容精致，从早到晚", q:"优雅不是穿衣打扮，是从内心散发出来的东西。", s:"— 董卿"},
+  {w:"愿天气配合你所有的心情", q:"好天气让人觉得活着真好。", s:"— 木心"},
+  {w:"愿发呆时，心里住满了好风景", q:"从前慢，一生只够爱一个人。", s:"— 木心"},
+  {w:"愿那只猫和那只狗都等着你回家", q:"家，是心里最柔软的地方。", s:"— 三毛"},
+  {w:"✦ 这一条，他已默默记下", q:"顺利时要敬畏，不顺时要坚守。", s:"— 送给你"},
+  {w:"✦ 这一条，你们一起完成", q:"余生，请多指教。", s:"— 他"},
+];
+
+// ── STATE ──
+const KEY = 'happiness_v3';
+function loadState(){
+  try{const s=localStorage.getItem(KEY);if(s)return JSON.parse(s);}catch(e){}
+  return {done:[28,29], userWishes:[], capsuleOpened:[false,false,false], sealClicks:0};
+}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(state));}catch(e){}}
+let state = loadState();
+
+// ── DAYS with count-up animation ──
+function animateCount(el, target, duration){
+  const start = performance.now();
+  const from = 0;
+  function step(now){
+    const p = Math.min((now - start) / duration, 1);
+    const ease = 1 - Math.pow(1 - p, 3);
+    el.textContent = Math.round(from + (target - from) * ease);
+    if(p < 1) requestAnimationFrame(step);
+    else { el.textContent = target; el.classList.add('bump'); setTimeout(()=>el.classList.remove('bump'),300); }
+  }
+  requestAnimationFrame(step);
+}
+function calcDays(dateStr){
+  const d=new Date(dateStr), now=new Date();
+  now.setHours(0,0,0,0); d.setHours(0,0,0,0);
+  return Math.max(0, Math.floor((now-d)/86400000));
+}
+// delay to let page settle before animating
+setTimeout(()=>{
+  animateCount(document.getElementById('daysKnow'), calcDays('2024-01-25'), 1400);
+  setTimeout(()=>animateCount(document.getElementById('daysTogether'), calcDays('2025-05-26'), 1200), 200);
+}, 900);
+setInterval(()=>{
+  document.getElementById('daysKnow').textContent = calcDays('2024-01-25');
+  document.getElementById('daysTogether').textContent = calcDays('2025-05-26');
+}, 60000);
+
+// ── WEATHER ──
+const WMO = {
+  0:'☀️',1:'🌤️',2:'⛅',3:'☁️',
+  45:'🌫️',48:'🌫️',
+  51:'🌦️',53:'🌦️',55:'🌧️',
+  61:'🌧️',63:'🌧️',65:'🌧️',
+  71:'❄️',73:'❄️',75:'❄️',77:'🌨️',
+  80:'🌦️',81:'🌧️',82:'⛈️',
+  85:'🌨️',86:'🌨️',
+  95:'⛈️',96:'⛈️',99:'⛈️'
+};
+const WMO_DESC = {
+  0:'晴天',1:'晴间多云',2:'多云',3:'阴天',
+  45:'雾',48:'雾凇',
+  51:'小毛毛雨',53:'毛毛雨',55:'大毛毛雨',
+  61:'小雨',63:'中雨',65:'大雨',
+  71:'小雪',73:'中雪',75:'大雪',77:'雪粒',
+  80:'阵雨',81:'中阵雨',82:'大阵雨',
+  85:'阵雪',86:'大阵雪',
+  95:'雷雨',96:'雷雨夹冰雹',99:'强雷雨'
+};
+function initWeather(){
+  if(!navigator.geolocation){
+    fetchWeatherByIP(); return;
+  }
+  navigator.geolocation.getCurrentPosition(
+    pos => fetchWeatherByCoords(pos.coords.latitude, pos.coords.longitude),
+    ()  => fetchWeatherByIP(),
+    {timeout:6000}
+  );
+}
+async function fetchWeatherByIP(){
+  try{
+    // ip-api.com has open CORS, works without key
+    const ipRes = await fetch('https://ip-api.com/json/?fields=lat,lon,city,regionName');
+    const ipData = await ipRes.json();
+    const city = ipData.city || ipData.regionName || '';
+    await fetchWeatherByCoords(ipData.lat, ipData.lon, city);
+  }catch(e){ setWeather('🌤️','——','加载中'); }
+}
+async function fetchWeatherByCoords(lat, lon, fallbackCity){
+  try{
+    const [weatherRes, geoRes] = await Promise.all([
+      fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&timezone=auto`),
+      fallbackCity ? Promise.resolve(null) :
+        fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&accept-language=zh`)
+    ]);
+    const wData = await weatherRes.json();
+    const cw = wData.current_weather;
+    const code = cw.weathercode;
+    const icon = WMO[code] || '🌡️';
+    const desc = WMO_DESC[code] || '';
+    const temp = Math.round(cw.temperature);
+    let locStr = fallbackCity || '未知地点';
+    if(!fallbackCity && geoRes){
+      const gData = await geoRes.json();
+      const addr = gData.address;
+      const city = addr.city || addr.town || addr.county || addr.state || '未知地点';
+      const district = addr.suburb || addr.district || '';
+      locStr = district ? `${city} · ${district}` : city;
+    }
+    setWeather(icon, locStr, desc, temp, code);
+  }catch(e){ setWeather('🌡️','天气获取失败','——', null, null); }
+}
+function getNag(code, temp){
+  if([51,53,55,61,63,65,80,81,82].includes(code)) return '☂️ 出门记得带伞，别把自己淋湿了';
+  if([95,96,99].includes(code)) return '⛈️ 雷雨天在室内待着，不要乱跑';
+  if([71,73,75,77,85,86].includes(code)) return '❄️ 下雪啦！路上会滑，慢点走，手手要暖';
+  if([45,48].includes(code)) return '🌫️ 大雾天出行注意安全，开车慢一点';
+  if(temp >= 35) return '🥵 太热了！多喝水，出门防晒，别中暑了';
+  if(temp >= 30) return '☀️ 天气有点热，防晒霜记得抹，多补水';
+  if(temp >= 22) return '🌸 天气不错，适合出去走走，心情也会好的';
+  if(temp >= 15) return '🧥 早晚温差有点大，出门多带一件外套';
+  if(temp >= 8)  return '🧣 天凉了，围巾帽子都备上，暖暖的出门';
+  if(temp >= 0)  return '🥶 好冷啊！多穿点，手脚一定要保暖';
+  return '🌨️ 零下了，裹紧了再出门，别冻着小脑袋';
+}
+function setWeather(icon, loc, desc, temp, code){
+  document.getElementById('weatherIcon').textContent = icon;
+  document.getElementById('weatherLocation').textContent = loc;
+  document.getElementById('weatherTemp').textContent = temp != null ? temp + '°C' : '';
+  document.getElementById('weatherDesc').textContent = desc;
+  document.getElementById('weatherNag').textContent = (temp != null && code != null) ? getNag(code, temp) : '';
+}
+initWeather();
+
+// ── PETALS ──
+function spawnPetals(){
+  const box=document.getElementById('petals');box.innerHTML='';
+  const chars=['✿','❀','✾','❁','·','✦'];
+  for(let i=0;i<22;i++){
+    const p=document.createElement('div');p.className='petal';
+    p.textContent=chars[Math.floor(Math.random()*chars.length)];
+    const dur=2.8+Math.random()*2;
+    p.style.cssText=`left:${Math.random()*100}vw;font-size:${10+Math.random()*12}px;animation-duration:${dur}s;animation-delay:${Math.random()*1.2}s;color:hsl(${340+Math.random()*25},55%,${62+Math.random()*18}%);`;
+    box.appendChild(p);
+    setTimeout(()=>p.remove(),(dur+1.5)*1000);
+  }
+}
+
+// ── MODAL ──
+let activeModal=null;
+function openModal(id){
+  closeModal();
+  activeModal=id;
+  document.getElementById(id).classList.add('show');
+  document.getElementById('overlay').classList.add('show');
+}
+function closeModal(){
+  if(activeModal){document.getElementById(activeModal).classList.remove('show');}
+  document.getElementById('overlay').classList.remove('show');
+  activeModal=null;
+}
+
+// ── PROGRESS ──
+function allWishes(){return ORIGINAL_WISHES.length + state.userWishes.length;}
+let diamondShown = false;
+function updateProgress(){
+  const n=state.done.length, total=allWishes();
+  document.getElementById('doneCount').textContent=n;
+  document.getElementById('totalCount').textContent=total;
+  document.getElementById('progressFill').style.width=Math.round(n/total*100)+'%';
+  document.getElementById('badge10').classList.toggle('unlocked',n>=10);
+  document.getElementById('badge20').classList.toggle('unlocked',n>=20);
+  const allDone = n>=total;
+  document.getElementById('badgeAll').classList.toggle('unlocked',allDone);
+
+  // reveal secret wish-31 when all done
+  const secret31El = document.getElementById('wish31');
+  if(secret31El){
+    if(allDone){
+      secret31El.style.opacity='0';
+      secret31El.style.display='flex';
+      setTimeout(()=>{ secret31El.style.transition='opacity 1.2s ease'; secret31El.style.opacity='1'; },50);
+    } else {
+      secret31El.style.display='none';
+    }
+  }
+
+  // diamond modal: trigger after wish-31 finishes fading in
+  if(allDone && !diamondShown){
+    diamondShown = true;
+    setTimeout(()=>{ spawnPetals(); openModal('diamondModal'); }, 2000);
+  }
+  if(!allDone){ diamondShown = false; }
+}
+
+// ── CAPSULES ──
+function renderCapsules(){
+  const c=document.getElementById('capsulesContainer');c.innerHTML='';
+  CAPSULES.forEach((cap,i)=>{
+    const opened=state.capsuleOpened[i];
+    const div=document.createElement('div');
+    div.className='capsule-item'+(opened?' unlocked':'');
+    div.innerHTML=`
+      <div class="capsule-envelope">${opened?'💌':'🔒'}</div>
+      <div class="capsule-info">
+        <div class="capsule-trigger">${cap.label}</div>
+        <div class="capsule-status">${opened?'✦ 点击阅读':'尚未解锁'}</div>
+      </div>`;
+    if(opened) div.addEventListener('click',()=>showCapsule(i));
+    c.appendChild(div);
+  });
+}
+function showCapsule(i){
+  const cap=CAPSULES[i];
+  document.getElementById('capTitle').textContent=cap.title;
+  document.getElementById('capContent').textContent=cap.content;
+  openModal('capsuleModal');
+}
+function checkCapsules(wishIdx){
+  CAPSULES.forEach((cap,i)=>{
+    if(!state.capsuleOpened[i] && wishIdx===cap.trigger){
+      state.capsuleOpened[i]=true;save();
+      renderCapsules();
+      setTimeout(()=>{spawnPetals();showCapsule(i);},800);
+    }
+  });
+}
+
+// ── WISH LIST ──
+function buildWishes(){
+  const base=ORIGINAL_WISHES.map((w,i)=>({...w,origIdx:i}));
+  const user=state.userWishes.map((w,i)=>({text:w,userIdx:i,origIdx:ORIGINAL_WISHES.length+i}));
+  const secret31=[{...WISH_31,origIdx:-1,isSecret31:true}];
+  return [...base,...user,...secret31];
+}
+
+function renderList(){
+  const list=document.getElementById('wishList');list.innerHTML='';
+  const wishes=buildWishes();
+  let displayNum=1;
+  wishes.forEach((w)=>{
+    const idx=w.origIdx;
+    const isDone=state.done.includes(idx);
+    const li=document.createElement('li');
+    li.className='wish-item'+(w.special?' special':'')+(isDone?' done':'')+(w.userIdx!=null?' user-added':'');
+    li.style.animationDelay=(1.0+displayNum*0.04)+'s';
+
+    if(w.isSecret31){
+      li.id='wish31';
+      li.style.display='none';
+      li.style.opacity='0';
+    }
+
+    const numStr=w.isSecret31?'31':String(displayNum).padStart(2,'0');
+    const tagHtml = w.pretagDone
+      ? `<span class="wish-tag">${w.pretagDone}</span>`
+      : (w.tag && isDone ? `<span class="wish-tag">${w.tag}</span>` : '');
+    li.innerHTML=`
+      <div class="checkbox"></div>
+      <span class="wish-num">${numStr}</span>
+      <div style="flex:1">
+        <div class="wish-text">${w.text}</div>
+        ${tagHtml}
+      </div>`;
+
+    if(!w.special && !w.isSecret31){
+      li.addEventListener('click',()=>{
+        const adding=!state.done.includes(idx);
+        if(adding){
+          state.done.push(idx);
+          li.classList.add('done');
+          checkCapsules(idx);
+          const qi=idx>=0&&idx<QUOTES.length?idx:Math.floor(Math.random()*QUOTES.length);
+          const q=QUOTES[qi];
+          document.getElementById('celebWish').textContent=q.w;
+          document.getElementById('celebQuote').textContent=q.q;
+          document.getElementById('celebSource').textContent=q.s;
+          spawnPetals();openModal('celebModal');
+        }else{
+          state.done=state.done.filter(d=>d!==idx);
+          li.classList.remove('done');
+        }
+        save();updateProgress();
+      });
+    }
+    if(!w.isSecret31) displayNum++;
+    list.appendChild(li);
+  });
+  updateProgress();
+}
+
+// ── ADD WISH ──
+function toggleAddForm(){
+  const f=document.getElementById('addWishForm');
+  f.classList.toggle('open');
+  if(f.classList.contains('open')) document.getElementById('addWishInput').focus();
+}
+function submitWish(){
+  const inp=document.getElementById('addWishInput');
+  const val=inp.value.trim();
+  if(!val) return;
+  state.userWishes.push(val);
+  save();inp.value='';
+  document.getElementById('addWishForm').classList.remove('open');
+  renderList();
+}
+document.getElementById('addWishInput').addEventListener('keydown',e=>{if(e.key==='Enter')submitWish();});
+
+// ── SEAL CLICKS (secret capsule after 3 clicks) ──
+document.getElementById('sealBtn').addEventListener('click',()=>{
+  state.sealClicks=(state.sealClicks||0)+1;save();
+  if(state.sealClicks>=3){openModal('secretModal');state.sealClicks=0;save();}
+});
+
+// ── SECRET DOT (item 0) ──
+document.getElementById('secretDot').addEventListener('click',()=>{
+  openModal('secretModal');
+});
+
+// ── EMAILJS CONFIG ── 填入你的三个参数 ──
+const EMAILJS_PUBLIC_KEY  = '9yMhCEYhHu5bOqG0p';
+const EMAILJS_SERVICE_ID  = 'service_xwyxdsw';
+const EMAILJS_TEMPLATE_ID = 'msn60xn';
+
+(function(){
+  if(typeof emailjs !== 'undefined') emailjs.init({publicKey: EMAILJS_PUBLIC_KEY});
+})();
+
+// ── MUYU (POKE) ──
+let muyuCount = parseInt(localStorage.getItem('muyu_count')||'0');
+function updateMuyuCount(){
+  const el = document.getElementById('pokeCount');
+  if(muyuCount > 0) el.textContent = `已敲了 ${muyuCount} 下`;
+}
+updateMuyuCount();
+
+function onPokeClick(){
+  // ripple
+  const ripple = document.getElementById('pokeRipple');
+  ripple.classList.remove('go'); void ripple.offsetWidth; ripple.classList.add('go');
+  // muyu swing animation
+  const wrap = document.getElementById('pokeHeartWrap');
+  wrap.classList.remove('poked'); void wrap.offsetWidth; wrap.classList.add('poked');
+  // floating 功德 text
+  const merit = document.getElementById('meritFloat');
+  merit.classList.remove('go'); void merit.offsetWidth; merit.classList.add('go');
+  // increment local count
+  muyuCount++;
+  localStorage.setItem('muyu_count', muyuCount);
+  updateMuyuCount();
+  // open modal after short delay
+  setTimeout(()=> openPokeModal(), 380);
+}
+
+function openPokeModal(){
+  document.getElementById('pokeModalInner').style.display = '';
+  document.getElementById('pokeSuccessInner').style.display = 'none';
+  document.getElementById('pokeMoodInput').value = '';
+  document.getElementById('pokeCharNum').textContent = '0';
+  document.getElementById('pokeSendBtn').disabled = false;
+  document.getElementById('pokeSendBtn').textContent = '拍他一下 🫀';
+  openModal('pokeModal');
+}
+
+function closePokeModal(){
+  closeModal();
+}
+
+function updateCharCount(){
+  const len = document.getElementById('pokeMoodInput').value.length;
+  document.getElementById('pokeCharNum').textContent = len;
+}
+
+function getNow(){
+  const now = new Date();
+  const pad = n => String(n).padStart(2,'0');
+  return `${now.getFullYear()}.${pad(now.getMonth()+1)}.${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
+}
+
+async function sendPoke(){
+  const btn = document.getElementById('pokeSendBtn');
+  const mood = document.getElementById('pokeMoodInput').value.trim();
+  const weatherDesc = document.getElementById('weatherDesc').textContent || '';
+  const weatherTemp = document.getElementById('weatherTemp').textContent || '';
+  const weatherLoc  = document.getElementById('weatherLocation').textContent || '';
+  const timeStr = getNow();
+
+  btn.disabled = true;
+  btn.textContent = '发送中…';
+
+  const templateParams = {
+    to_email:    'zhuyuedong@student.usm.my',
+    send_time:   timeStr,
+    mood:        mood || '（没有留言，只是轻轻拍了你一下）',
+    weather_loc: weatherLoc,
+    weather_now: weatherTemp + ' ' + weatherDesc,
+  };
+
+  try{
+    if(typeof emailjs === 'undefined') throw new Error('emailjs not loaded');
+    await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, templateParams);
+    showPokeSuccess();
+  }catch(e){
+    // fallback: mailto
+    const subject = encodeURIComponent(`媚媚拍了你一下 🫀 ${timeStr}`);
+    const body = encodeURIComponent(
+      `时间：${timeStr}\n当前天气：${weatherLoc} ${weatherTemp} ${weatherDesc}\n\n她说：${mood || '（没有留言，只是轻轻拍了你一下）'}`
+    );
+    window.location.href = `mailto:zhuyuedong@student.usm.my?subject=${subject}&body=${body}`;
+    showPokeSuccess();
+  }
+}
+
+function showPokeSuccess(){
+  document.getElementById('pokeModalInner').style.display = 'none';
+  document.getElementById('pokeSuccessInner').style.display = '';
+  const hint = document.getElementById('pokeHint');
+  hint.textContent = '木鱼敲响了，他知道你在想他 🌸';
+  hint.style.color = 'var(--blush)';
+}
+
+renderList();
+renderCapsules();
+</script>
+</body>
+</html>
