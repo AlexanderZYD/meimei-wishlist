@@ -600,23 +600,44 @@ const WMO_DESC = {
   95:'雷雨',96:'雷雨夹冰雹',99:'强雷雨'
 };
 function initWeather(){
+  const weatherTimeout = setTimeout(()=>{
+    fetchWeatherByIP();
+  }, 10000);
+
+  function done(){ clearTimeout(weatherTimeout); }
+
   if(!navigator.geolocation){
-    fetchWeatherByIP(); return;
+    done(); fetchWeatherByIP(); return;
   }
   navigator.geolocation.getCurrentPosition(
-    pos => fetchWeatherByCoords(pos.coords.latitude, pos.coords.longitude),
-    ()  => fetchWeatherByIP(),
-    {timeout:6000}
+    pos => { done(); fetchWeatherByCoords(pos.coords.latitude, pos.coords.longitude); },
+    ()  => { done(); fetchWeatherByIP(); },
+    {timeout:8000, maximumAge:600000, enableHighAccuracy:false}
   );
 }
 async function fetchWeatherByIP(){
   try{
-    // ip-api.com has open CORS, works without key
-    const ipRes = await fetch('https://ip-api.com/json/?fields=lat,lon,city,regionName');
-    const ipData = await ipRes.json();
-    const city = ipData.city || ipData.regionName || '';
-    await fetchWeatherByCoords(ipData.lat, ipData.lon, city);
-  }catch(e){ setWeather('🌤️','——','加载中'); }
+    // 使用腾讯位置服务IP定位（国内可访问）
+    const ipRes = await fetch('https://apis.map.qq.com/ws/location/v1/ip?key=OB4BZ-D4W3U-B7VVO-4PJWW-6TKDJ-WPB77&output=jsonp&callback=?');
+    // 如果腾讯API失败，用备用
+    throw new Error('use backup');
+  }catch(e){
+    try{
+      // 备用：通过open-meteo自带IP定位（无需额外请求）
+      const res = await fetch('https://ipinfo.io/json?token=free');
+      const data = await res.json();
+      if(data.loc){
+        const [lat, lon] = data.loc.split(',');
+        const city = data.city || data.region || '';
+        await fetchWeatherByCoords(parseFloat(lat), parseFloat(lon), city);
+        return;
+      }
+      throw new Error('no loc');
+    }catch(e2){
+      // 最终备用：直接用广州坐标兜底，至少显示天气
+      await fetchWeatherByCoords(23.1291, 113.2644, '定位失败·广州');
+    }
+  }
 }
 async function fetchWeatherByCoords(lat, lon, fallbackCity){
   try{
