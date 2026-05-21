@@ -855,7 +855,14 @@ const EMAILJS_SERVICE_ID  = 'service_xwyxdsw';
 const EMAILJS_TEMPLATE_ID = 'msn60xn';
 
 (function(){
-  if(typeof emailjs !== 'undefined') emailjs.init({publicKey: EMAILJS_PUBLIC_KEY});
+  if(typeof emailjs !== 'undefined'){
+    emailjs.init({publicKey: EMAILJS_PUBLIC_KEY});
+  } else {
+    // SDK not yet ready, wait for load
+    window.addEventListener('load', ()=>{
+      if(typeof emailjs !== 'undefined') emailjs.init({publicKey: EMAILJS_PUBLIC_KEY});
+    });
+  }
 })();
 
 // ── MUYU (POKE) ──
@@ -923,23 +930,21 @@ async function sendPoke(){
   const templateParams = {
     to_email:    'zhuyuedong@student.usm.my',
     send_time:   timeStr,
-    mood:        mood || '（没有留言，只是轻轻拍了你一下）',
+    mood:        mood || '（没有留言，只是轻轻敲了你一下）',
     weather_loc: weatherLoc,
     weather_now: weatherTemp + ' ' + weatherDesc,
   };
 
   try{
+    // ensure init
     if(typeof emailjs === 'undefined') throw new Error('emailjs not loaded');
-    await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, templateParams);
+    emailjs.init({publicKey: EMAILJS_PUBLIC_KEY});
+    await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, templateParams, {publicKey: EMAILJS_PUBLIC_KEY});
     showPokeSuccess();
   }catch(e){
-    // fallback: mailto
-    const subject = encodeURIComponent(`媚媚拍了你一下 🫀 ${timeStr}`);
-    const body = encodeURIComponent(
-      `时间：${timeStr}\n当前天气：${weatherLoc} ${weatherTemp} ${weatherDesc}\n\n她说：${mood || '（没有留言，只是轻轻拍了你一下）'}`
-    );
-    window.location.href = `mailto:zhuyuedong@student.usm.my?subject=${subject}&body=${body}`;
-    showPokeSuccess();
+    console.error('EmailJS error:', e);
+    btn.disabled = false;
+    btn.textContent = '发送失败，再试一次';
   }
 }
 
