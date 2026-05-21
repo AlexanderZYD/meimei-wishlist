@@ -614,7 +614,7 @@ async function fetchWeather(lat, lon, cityName){
     let locStr = cityName || '';
     if(!locStr){
       try{
-        const amapRes = await fetch(`https://restapi.amap.com/v3/geocode/regeo?location=${lon},${lat}&key=5f76fca9439244f5574772d0c2e1ce35&radius=1000&extensions=base&output=json`);
+        const amapRes = await fetch(`https://restapi.amap.com/v3/geocode/regeo?location=${lon},${lat}&key=6fe2eca2e56e68fbc996e84dd50c22fa&radius=1000&extensions=base&output=json`);
         const amapData = await amapRes.json();
         if(amapData.status==='1' && amapData.regeocode){
           const addr = amapData.regeocode.addressComponent;
