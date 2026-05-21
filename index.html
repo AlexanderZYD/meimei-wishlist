@@ -578,96 +578,75 @@ setInterval(()=>{
   document.getElementById('daysTogether').textContent = calcDays('2025-05-26');
 }, 60000);
 
-// ── WEATHER ──
-const WMO = {
-  0:'☀️',1:'🌤️',2:'⛅',3:'☁️',
-  45:'🌫️',48:'🌫️',
-  51:'🌦️',53:'🌦️',55:'🌧️',
-  61:'🌧️',63:'🌧️',65:'🌧️',
-  71:'❄️',73:'❄️',75:'❄️',77:'🌨️',
-  80:'🌦️',81:'🌧️',82:'⛈️',
-  85:'🌨️',86:'🌨️',
-  95:'⛈️',96:'⛈️',99:'⛈️'
+// ── WEATHER (和风天气) ──
+const QWEATHER_KEY = 'f781fd4318fc4730985861cae2017189';
+
+const QW_ICON = {
+  '100':'☀️','101':'🌤️','102':'⛅','103':'🌤️','104':'☁️',
+  '150':'🌙','151':'🌤️','152':'⛅','153':'🌤️',
+  '200':'💨','201':'💨','202':'💨','203':'💨','204':'💨','205':'💨','206':'💨','207':'💨','208':'💨','209':'💨','210':'💨','211':'💨','212':'💨','213':'💨',
+  '300':'🌦️','301':'🌧️','302':'⛈️','303':'⛈️','304':'🌩️',
+  '305':'🌧️','306':'🌧️','307':'🌧️','308':'🌧️','309':'🌦️','310':'🌧️','311':'🌧️','312':'🌧️','313':'🌨️','314':'🌧️','315':'🌧️','316':'🌧️','317':'🌧️','318':'🌧️','399':'🌧️',
+  '400':'❄️','401':'❄️','402':'❄️','403':'❄️','404':'🌨️','405':'🌨️','406':'🌨️','407':'🌨️','408':'❄️','409':'❄️','410':'❄️','499':'❄️',
+  '500':'🌫️','501':'🌫️','502':'🌫️','503':'🌫️','504':'🌫️','507':'🌫️','508':'🌫️','509':'🌫️','510':'🌫️','511':'🌫️','512':'🌫️','513':'🌫️','514':'🌫️','515':'🌫️',
 };
-const WMO_DESC = {
-  0:'晴天',1:'晴间多云',2:'多云',3:'阴天',
-  45:'雾',48:'雾凇',
-  51:'小毛毛雨',53:'毛毛雨',55:'大毛毛雨',
-  61:'小雨',63:'中雨',65:'大雨',
-  71:'小雪',73:'中雪',75:'大雪',77:'雪粒',
-  80:'阵雨',81:'中阵雨',82:'大阵雨',
-  85:'阵雪',86:'大阵雪',
-  95:'雷雨',96:'雷雨夹冰雹',99:'强雷雨'
-};
+
 function initWeather(){
-  const weatherTimeout = setTimeout(()=>{
-    fetchWeatherByIP();
-  }, 10000);
-
-  function done(){ clearTimeout(weatherTimeout); }
-
-  if(!navigator.geolocation){
-    done(); fetchWeatherByIP(); return;
-  }
+  if(!navigator.geolocation){ fetchQWeatherByIP(); return; }
   navigator.geolocation.getCurrentPosition(
-    pos => { done(); fetchWeatherByCoords(pos.coords.latitude, pos.coords.longitude); },
-    ()  => { done(); fetchWeatherByIP(); },
+    pos => fetchQWeatherByCoords(pos.coords.latitude, pos.coords.longitude),
+    ()  => fetchQWeatherByIP(),
     {timeout:8000, maximumAge:600000, enableHighAccuracy:false}
   );
 }
-async function fetchWeatherByIP(){
+
+async function fetchQWeatherByIP(){
+  // 和风天气IP定位接口
   try{
-    // 使用腾讯位置服务IP定位（国内可访问）
-    const ipRes = await fetch('https://apis.map.qq.com/ws/location/v1/ip?key=OB4BZ-D4W3U-B7VVO-4PJWW-6TKDJ-WPB77&output=jsonp&callback=?');
-    // 如果腾讯API失败，用备用
-    throw new Error('use backup');
-  }catch(e){
-    try{
-      // 备用：通过open-meteo自带IP定位（无需额外请求）
-      const res = await fetch('https://ipinfo.io/json?token=free');
-      const data = await res.json();
-      if(data.loc){
-        const [lat, lon] = data.loc.split(',');
-        const city = data.city || data.region || '';
-        await fetchWeatherByCoords(parseFloat(lat), parseFloat(lon), city);
-        return;
-      }
-      throw new Error('no loc');
-    }catch(e2){
-      // 最终备用：直接用广州坐标兜底，至少显示天气
-      await fetchWeatherByCoords(23.1291, 113.2644, '定位失败·广州');
+    const res = await fetch(`https://ipgeo.qweather.com/v1/ip?key=${QWEATHER_KEY}`);
+    const data = await res.json();
+    if(data.code === '200' && data.location){
+      await fetchQWeatherByCoords(data.location.lat, data.location.lon, data.location.city || data.location.adm2);
+      return;
     }
+  }catch(e){}
+  // 兜底广州
+  await fetchQWeatherByCoords(23.1291, 113.2644, '广州');
+}
+
+async function fetchQWeatherByCoords(lat, lon, cityName){
+  try{
+    // 先用GeoAPI拿城市名（如果没有传入）
+    let locStr = cityName || '';
+    if(!locStr){
+      const geoRes = await fetch(`https://geoapi.qweather.com/v2/city/lookup?location=${lon},${lat}&key=${QWEATHER_KEY}&lang=zh`);
+      const geoData = await geoRes.json();
+      if(geoData.code === '200' && geoData.location && geoData.location.length > 0){
+        const loc = geoData.location[0];
+        locStr = loc.adm2 === loc.name ? loc.name : `${loc.adm2} · ${loc.name}`;
+      }
+    }
+    // 实时天气
+    const wRes = await fetch(`https://devapi.qweather.com/v7/weather/now?location=${lon},${lat}&key=${QWEATHER_KEY}&lang=zh`);
+    const wData = await wRes.json();
+    if(wData.code !== '200') throw new Error('weather api error');
+    const now = wData.now;
+    const icon = QW_ICON[now.icon] || '🌡️';
+    const desc = now.text || '';
+    const temp = parseInt(now.temp);
+    setWeather(icon, locStr || '未知地点', desc, temp, now.icon);
+  }catch(e){
+    setWeather('🌡️', '天气获取失败', '——', null, null);
   }
 }
-async function fetchWeatherByCoords(lat, lon, fallbackCity){
-  try{
-    const [weatherRes, geoRes] = await Promise.all([
-      fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&timezone=auto`),
-      fallbackCity ? Promise.resolve(null) :
-        fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&accept-language=zh`)
-    ]);
-    const wData = await weatherRes.json();
-    const cw = wData.current_weather;
-    const code = cw.weathercode;
-    const icon = WMO[code] || '🌡️';
-    const desc = WMO_DESC[code] || '';
-    const temp = Math.round(cw.temperature);
-    let locStr = fallbackCity || '未知地点';
-    if(!fallbackCity && geoRes){
-      const gData = await geoRes.json();
-      const addr = gData.address;
-      const city = addr.city || addr.town || addr.county || addr.state || '未知地点';
-      const district = addr.suburb || addr.district || '';
-      locStr = district ? `${city} · ${district}` : city;
-    }
-    setWeather(icon, locStr, desc, temp, code);
-  }catch(e){ setWeather('🌡️','天气获取失败','——', null, null); }
-}
-function getNag(code, temp){
-  if([51,53,55,61,63,65,80,81,82].includes(code)) return '☂️ 出门记得带伞，别把自己淋湿了';
-  if([95,96,99].includes(code)) return '⛈️ 雷雨天在室内待着，不要乱跑';
-  if([71,73,75,77,85,86].includes(code)) return '❄️ 下雪啦！路上会滑，慢点走，手手要暖';
-  if([45,48].includes(code)) return '🌫️ 大雾天出行注意安全，开车慢一点';
+
+function getNag(iconCode, temp){
+  const c = parseInt(iconCode);
+  if(c>=300&&c<320) return '☂️ 出门记得带伞，别把自己淋湿了';
+  if(c>=302&&c<=303) return '⛈️ 雷雨天在室内待着，不要乱跑';
+  if(c>=400&&c<420) return '❄️ 下雪啦！路上会滑，慢点走，手手要暖';
+  if(c>=500&&c<520) return '🌫️ 大雾天出行注意安全，开车慢一点';
+  if(temp === null) return '';
   if(temp >= 35) return '🥵 太热了！多喝水，出门防晒，别中暑了';
   if(temp >= 30) return '☀️ 天气有点热，防晒霜记得抹，多补水';
   if(temp >= 22) return '🌸 天气不错，适合出去走走，心情也会好的';
@@ -676,12 +655,12 @@ function getNag(code, temp){
   if(temp >= 0)  return '🥶 好冷啊！多穿点，手脚一定要保暖';
   return '🌨️ 零下了，裹紧了再出门，别冻着小脑袋';
 }
-function setWeather(icon, loc, desc, temp, code){
+function setWeather(icon, loc, desc, temp, iconCode){
   document.getElementById('weatherIcon').textContent = icon;
   document.getElementById('weatherLocation').textContent = loc;
   document.getElementById('weatherTemp').textContent = temp != null ? temp + '°C' : '';
   document.getElementById('weatherDesc').textContent = desc;
-  document.getElementById('weatherNag').textContent = (temp != null && code != null) ? getNag(code, temp) : '';
+  document.getElementById('weatherNag').textContent = getNag(iconCode, temp);
 }
 initWeather();
 
