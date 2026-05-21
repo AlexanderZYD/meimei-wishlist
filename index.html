@@ -592,49 +592,41 @@ const QW_ICON = {
 };
 
 function initWeather(){
-  if(!navigator.geolocation){ fetchQWeatherByIP(); return; }
+  // 直接先显示广州兜底，成功后替换
+  fetchQWeatherByCoords(23.1291, 113.2644, '广州');
+  if(!navigator.geolocation) return;
   navigator.geolocation.getCurrentPosition(
-    pos => fetchQWeatherByCoords(pos.coords.latitude, pos.coords.longitude),
-    ()  => fetchQWeatherByIP(),
+    pos => fetchQWeatherByCoords(pos.coords.latitude, pos.coords.longitude, ''),
+    () => {},
     {timeout:8000, maximumAge:600000, enableHighAccuracy:false}
   );
 }
 
-async function fetchQWeatherByIP(){
-  try{
-    const res = await fetch(`https://ipgeo.qweather.com/v1/ip?key=${QWEATHER_KEY}`);
-    const data = await res.json();
-    if(data.code === '200' && data.location){
-      await fetchQWeatherByCoords(data.location.lat, data.location.lon, data.location.city || data.location.adm2);
-      return;
-    }
-  }catch(e){}
-  // 兜底广州
-  await fetchQWeatherByCoords(23.1291, 113.2644, '广州');
-}
-
 async function fetchQWeatherByCoords(lat, lon, cityName){
   try{
-    // 先用GeoAPI拿城市名（如果没有传入）
-    let locStr = cityName || '';
-    if(!locStr){
-      const geoRes = await fetch(`https://geoapi.qweather.com/v2/city/lookup?location=${lon},${lat}&key=${QWEATHER_KEY}&lang=zh`);
-      const geoData = await geoRes.json();
-      if(geoData.code === '200' && geoData.location && geoData.location.length > 0){
-        const loc = geoData.location[0];
-        locStr = loc.adm2 === loc.name ? loc.name : `${loc.adm2} · ${loc.name}`;
-      }
+    let locStr = cityName;
+    // 用城市查询拿名字
+    if(locStr === ''){
+      try{
+        const geoRes = await fetch(`https://geoapi.qweather.com/v2/city/lookup?location=${lon.toFixed(2)},${lat.toFixed(2)}&key=${QWEATHER_KEY}&lang=zh`);
+        const geoData = await geoRes.json();
+        if(geoData.code === '200' && geoData.location && geoData.location[0]){
+          const loc = geoData.location[0];
+          locStr = loc.adm2 === loc.name ? loc.name : `${loc.adm2} · ${loc.name}`;
+        }
+      }catch(e){ locStr = ''; }
     }
     // 实时天气
-    const wRes = await fetch(`https://api.qweather.com/v7/weather/now?location=${lon},${lat}&key=${QWEATHER_KEY}&lang=zh`);
+    const wRes = await fetch(`https://devapi.qweather.com/v7/weather/now?location=${lon.toFixed(2)},${lat.toFixed(2)}&key=${QWEATHER_KEY}&lang=zh`);
     const wData = await wRes.json();
-    if(wData.code !== '200') throw new Error('weather api error');
+    if(wData.code !== '200') throw new Error(wData.code);
     const now = wData.now;
     const icon = QW_ICON[now.icon] || '🌡️';
     const desc = now.text || '';
     const temp = parseInt(now.temp);
     setWeather(icon, locStr || '未知地点', desc, temp, now.icon);
   }catch(e){
+    console.error('weather error:', e);
     setWeather('🌡️', '天气获取失败', '——', null, null);
   }
 }
