@@ -929,16 +929,19 @@ async function sendPoke(){
 
   const templateParams = {
     to_email:    'zhuyuedong@student.usm.my',
+    from_name:   '媚媚',
     send_time:   timeStr,
     mood:        mood || '（没有留言，只是轻轻敲了你一下）',
     weather_loc: weatherLoc,
     weather_now: weatherTemp + ' ' + weatherDesc,
+    message:     `时间：${timeStr}\n位置天气：${weatherLoc} ${weatherTemp} ${weatherDesc}\n\n她说：${mood || '（没有留言，只是轻轻敲了你一下）'}`,
   };
 
   try{
     // ensure init
     if(typeof emailjs === 'undefined') throw new Error('emailjs not loaded');
     emailjs.init({publicKey: EMAILJS_PUBLIC_KEY});
+    console.log('Sending params:', JSON.stringify(templateParams));
     await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, templateParams, {publicKey: EMAILJS_PUBLIC_KEY});
     showPokeSuccess();
   }catch(e){
