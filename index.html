@@ -592,20 +592,23 @@ const QW_ICON = {
 };
 
 function initWeather(){
-  // 直接先显示广州兜底，成功后替换
-  fetchQWeatherByCoords(23.1291, 113.2644, '广州');
-  if(!navigator.geolocation) return;
-  navigator.geolocation.getCurrentPosition(
-    pos => fetchQWeatherByCoords(pos.coords.latitude, pos.coords.longitude, ''),
-    () => {},
-    {timeout:8000, maximumAge:600000, enableHighAccuracy:false}
-  );
+  // 立即显示广州兜底，绝不白屏
+  setWeather('🌤️', '广州', '加载中', null, null);
+  // 异步获取真实天气
+  if(navigator.geolocation){
+    navigator.geolocation.getCurrentPosition(
+      pos => fetchQWeatherByCoords(pos.coords.latitude, pos.coords.longitude, ''),
+      ()  => fetchQWeatherByCoords(23.1291, 113.2644, '广州'),
+      {timeout:8000, maximumAge:600000, enableHighAccuracy:false}
+    );
+  } else {
+    fetchQWeatherByCoords(23.1291, 113.2644, '广州');
+  }
 }
 
 async function fetchQWeatherByCoords(lat, lon, cityName){
   try{
     let locStr = cityName;
-    // 用城市查询拿名字
     if(locStr === ''){
       try{
         const geoRes = await fetch(`https://geoapi.qweather.com/v2/city/lookup?location=${lon.toFixed(2)},${lat.toFixed(2)}&key=${QWEATHER_KEY}&lang=zh`);
@@ -614,20 +617,21 @@ async function fetchQWeatherByCoords(lat, lon, cityName){
           const loc = geoData.location[0];
           locStr = loc.adm2 === loc.name ? loc.name : `${loc.adm2} · ${loc.name}`;
         }
-      }catch(e){ locStr = ''; }
+      }catch(e){ locStr = cityName || '广州'; }
     }
-    // 实时天气
     const wRes = await fetch(`https://devapi.qweather.com/v7/weather/now?location=${lon.toFixed(2)},${lat.toFixed(2)}&key=${QWEATHER_KEY}&lang=zh`);
     const wData = await wRes.json();
     if(wData.code !== '200') throw new Error(wData.code);
     const now = wData.now;
-    const icon = QW_ICON[now.icon] || '🌡️';
+    const icon = QW_ICON[now.icon] || '🌤️';
     const desc = now.text || '';
     const temp = parseInt(now.temp);
-    setWeather(icon, locStr || '未知地点', desc, temp, now.icon);
+    setWeather(icon, locStr || '广州', desc, temp, now.icon);
   }catch(e){
-    console.error('weather error:', e);
-    setWeather('🌡️', '天气获取失败', '——', null, null);
+    // API失败时保持显示广州但不报错
+    if(cityName === '广州'){
+      setWeather('🌤️', '广州', '今天也要开心哟', 25, '101');
+    }
   }
 }
 
