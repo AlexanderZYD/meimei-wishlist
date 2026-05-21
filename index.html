@@ -601,7 +601,6 @@ function initWeather(){
 }
 
 async function fetchQWeatherByIP(){
-  // 和风天气IP定位接口
   try{
     const res = await fetch(`https://ipgeo.qweather.com/v1/ip?key=${QWEATHER_KEY}`);
     const data = await res.json();
@@ -627,7 +626,7 @@ async function fetchQWeatherByCoords(lat, lon, cityName){
       }
     }
     // 实时天气
-    const wRes = await fetch(`https://devapi.qweather.com/v7/weather/now?location=${lon},${lat}&key=${QWEATHER_KEY}&lang=zh`);
+    const wRes = await fetch(`https://api.qweather.com/v7/weather/now?location=${lon},${lat}&key=${QWEATHER_KEY}&lang=zh`);
     const wData = await wRes.json();
     if(wData.code !== '200') throw new Error('weather api error');
     const now = wData.now;
