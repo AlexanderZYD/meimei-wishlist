@@ -4,6 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>媚媚的幸福清单</title>
+<link rel="manifest" href="manifest.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="幸福清单">
+<link rel="apple-touch-icon" href="icon.svg">
+<meta name="theme-color" content="#d4878a">
+<meta name="mobile-web-app-capable" content="yes">
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;500;600&family=Ma+Shan+Zheng&display=swap" rel="stylesheet">
@@ -460,6 +467,12 @@ body::before{content:'';position:fixed;inset:0;background-image:repeating-linear
   <div class="modal-divider"></div>
   <p class="diamond-text">你完成了所有的愿望<br>也完成了所有的美好<br><br>We wrote our own destiny,<br>and this would always happen…</p>
   <button class="modal-close" onclick="closeModal()">— 轻触关闭 —</button>
+</div>
+
+<div id="pwaBar" style="display:none;position:fixed;bottom:0;left:0;right:0;background:var(--paper);border-top:1px solid var(--paper-aged);padding:12px 20px;z-index:200;align-items:center;gap:12px;box-shadow:0 -2px 12px rgba(44,33,24,0.08);">
+  <div style="flex:1;font-size:12px;color:var(--ink-light);letter-spacing:0.1em;font-family:'Noto Serif SC',serif;">添加到主屏幕，随时打开</div>
+  <button onclick="installPWA()" style="background:var(--blush);border:none;border-radius:2px;padding:7px 16px;font-family:'Noto Serif SC',serif;font-size:12px;color:white;cursor:pointer;letter-spacing:0.1em;">添加</button>
+  <button onclick="document.getElementById('pwaBar').style.display='none'" style="background:none;border:none;font-size:18px;color:var(--ink-faint);cursor:pointer;padding:0 4px;">×</button>
 </div>
 
 <div class="petals" id="petals"></div>
@@ -956,6 +969,32 @@ function showPokeSuccess(){
   const hint = document.getElementById('pokeHint');
   hint.textContent = '木鱼敲响了，他知道你在想他 🌸';
   hint.style.color = 'var(--blush)';
+}
+
+// ── PWA 安装提示 ──
+let deferredPrompt = null;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  // 显示安装提示条
+  document.getElementById('pwaBar').style.display = 'flex';
+});
+window.addEventListener('appinstalled', () => {
+  document.getElementById('pwaBar').style.display = 'none';
+});
+
+function installPWA(){
+  if(deferredPrompt){
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.then(()=>{ deferredPrompt=null; });
+  }
+}
+
+// ── Service Worker ──
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('/meimei-wishlist/sw.js').catch(()=>{});
+  });
 }
 
 renderList();
