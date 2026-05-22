@@ -2,14 +2,14 @@
 <html lang="zh">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>媚媚的幸福清单</title>
 <link rel="manifest" href="manifest.json">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="幸福清单">
 <link rel="apple-touch-icon" href="icon-180.png">
-<meta name="theme-color" content="#d4878a">
+<meta name="theme-color" id="themeColorMeta" content="#d4878a">
 <meta name="mobile-web-app-capable" content="yes">
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -20,262 +20,314 @@
   --paper:#faf6f0; --paper-aged:#ede0cc;
   --blush:#d4878a; --blush-light:#f0cecd; --blush-faint:#fdf4f4;
   --seal:#b03030;
+  --festival-accent: var(--blush);
 }
 *{margin:0;padding:0;box-sizing:border-box;}
-body{background:var(--paper);color:var(--ink);font-family:'Noto Serif SC',serif;min-height:100vh;overflow-x:hidden;}
+html,body{height:100%;overflow:hidden;}
+body{background:var(--paper);color:var(--ink);font-family:'Noto Serif SC',serif;display:flex;flex-direction:column;}
 body::before{content:'';position:fixed;inset:0;background-image:repeating-linear-gradient(0deg,transparent,transparent 31px,rgba(180,150,120,0.09) 31px,rgba(180,150,120,0.09) 32px);pointer-events:none;z-index:0;}
 
-.page{max-width:660px;margin:0 auto;padding:64px 44px 100px;position:relative;z-index:1;}
-.page::before{content:'';position:absolute;left:72px;top:0;bottom:0;width:1px;background:rgba(192,80,80,0.18);}
+/* ── BOTTOM NAV ── */
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;height:56px;background:rgba(250,246,240,0.97);border-top:0.5px solid var(--paper-aged);display:flex;z-index:50;backdrop-filter:blur(8px);}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;transition:all 0.2s;padding:6px 0;}
+.nav-icon{font-size:20px;line-height:1;transition:transform 0.2s;}
+.nav-label{font-size:9px;color:var(--ink-faint);letter-spacing:0.1em;font-weight:300;transition:color 0.2s;}
+.nav-item.active .nav-icon{transform:scale(1.15);}
+.nav-item.active .nav-label{color:var(--blush);}
 
-/* WEATHER BAR */
-.weather-bar{display:flex;align-items:center;gap:12px;margin-bottom:28px;padding:12px 20px;background:rgba(255,255,255,0.6);border:0.5px solid var(--paper-aged);border-radius:2px;opacity:0;animation:riseIn 0.7s ease 0.05s forwards;}
-.weather-icon{font-size:22px;line-height:1;flex-shrink:0;}
-.weather-info{flex:1;min-width:0;}
+/* ── TAB PAGES ── */
+.app-container{flex:1;overflow:hidden;position:relative;}
+.tab-page{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;opacity:0;pointer-events:none;transition:opacity 0.25s;}
+.tab-page.active{opacity:1;pointer-events:auto;}
+.page-inner{max-width:660px;margin:0 auto;padding:24px 24px 80px;position:relative;z-index:1;}
+
+/* ── FESTIVAL THEMES ── */
+body.festival-valentine{--paper:#fff5f7;--blush:#e05575;--blush-light:#f9c5d0;--blush-faint:#fff0f3;}
+body.festival-qixi{--paper:#fff8f5;--blush:#d4537a;--blush-light:#f5c0cf;--blush-faint:#fff3f6;}
+body.festival-christmas{--paper:#f5faf5;--blush:#2d7a3a;--blush-light:#a8d5b0;--blush-faint:#edf7ef;--ink:#1a2e1a;}
+body.festival-newyear{--paper:#fffaf0;--blush:#cc2200;--blush-light:#f5b8a8;--blush-faint:#fff5f0;}
+body.festival-anniversary{--paper:#fdf5ff;--blush:#9b59b6;--blush-light:#dbb8f0;--blush-faint:#faf0ff;}
+body.festival-birthday-him{--paper:#f5f8ff;--blush:#3a6fd4;--blush-light:#b0c8f5;--blush-faint:#f0f4ff;}
+body.festival-birthday-her{--paper:#fff8f0;--blush:#e07820;--blush-light:#f5d0a0;--blush-faint:#fff5e8;}
+body.festival-monthly{--paper:#fdf8ff;--blush:#c060d0;--blush-light:#e8b8f5;--blush-faint:#faf0ff;}
+
+/* ── WEATHER BAR ── */
+.weather-bar{display:flex;align-items:center;gap:12px;margin-bottom:20px;padding:10px 16px;background:rgba(255,255,255,0.6);border:0.5px solid var(--paper-aged);border-radius:4px;}
+.weather-icon{font-size:20px;flex-shrink:0;}
+.weather-info{flex:1;}
 .weather-row1{display:flex;align-items:baseline;gap:8px;}
-.weather-location{font-size:10px;color:var(--ink-faint);letter-spacing:0.15em;font-weight:300;}
-.weather-temp{font-family:'Ma Shan Zheng',cursive;font-size:16px;color:var(--blush);letter-spacing:0.05em;}
-.weather-desc{font-size:11px;color:var(--ink-faint);letter-spacing:0.08em;font-weight:300;}
-.weather-nag{font-size:11.5px;color:#8a4a4a;letter-spacing:0.08em;font-weight:300;margin-top:3px;line-height:1.6;}
+.weather-location{font-size:10px;color:var(--ink-faint);letter-spacing:0.12em;font-weight:300;}
+.weather-temp{font-family:'Ma Shan Zheng',cursive;font-size:15px;color:var(--blush);}
+.weather-desc{font-size:10px;color:var(--ink-faint);font-weight:300;}
+.weather-nag{font-size:11px;color:#8a4a4a;margin-top:2px;font-weight:300;letter-spacing:0.06em;}
 
-/* HEADER */
-.header{text-align:center;margin-bottom:32px;padding-bottom:28px;border-bottom:1px solid var(--paper-aged);position:relative;opacity:0;animation:riseIn 0.9s ease 0.15s forwards;}
-.date-stamp{font-size:11px;letter-spacing:0.32em;color:var(--ink-faint);margin-bottom:16px;font-weight:300;}
-.title-main{font-family:'Ma Shan Zheng',cursive;font-size:44px;color:var(--ink);letter-spacing:0.18em;line-height:1.15;margin-bottom:12px;}
-.title-sub{font-size:11px;color:var(--ink-faint);letter-spacing:0.25em;font-weight:300;}
-.seal{position:absolute;right:0;top:50%;transform:translateY(-50%);width:54px;height:54px;border:1.5px solid var(--seal);border-radius:3px;display:flex;align-items:center;justify-content:center;color:var(--seal);font-family:'Ma Shan Zheng',cursive;font-size:12px;letter-spacing:0.1em;opacity:0.65;writing-mode:vertical-rl;padding:4px;line-height:1.2;cursor:pointer;transition:opacity 0.3s;}
+/* ── HEADER ── */
+.header{text-align:center;margin-bottom:24px;padding-bottom:20px;border-bottom:1px solid var(--paper-aged);position:relative;}
+.date-stamp{font-size:10px;letter-spacing:0.28em;color:var(--ink-faint);margin-bottom:12px;font-weight:300;}
+.title-main{font-family:'Ma Shan Zheng',cursive;font-size:38px;color:var(--ink);letter-spacing:0.15em;line-height:1.15;margin-bottom:10px;}
+.title-sub{font-size:10px;color:var(--ink-faint);letter-spacing:0.22em;font-weight:300;}
+.seal{position:absolute;right:0;top:50%;transform:translateY(-50%);width:48px;height:48px;border:1.5px solid var(--seal);border-radius:3px;display:flex;align-items:center;justify-content:center;color:var(--seal);font-family:'Ma Shan Zheng',cursive;font-size:11px;letter-spacing:0.1em;opacity:0.65;writing-mode:vertical-rl;padding:4px;line-height:1.2;cursor:pointer;transition:opacity 0.3s;}
 .seal:hover{opacity:1;}
 
-/* DAYS */
-.days-badge{text-align:center;margin-bottom:24px;opacity:0;animation:riseIn 0.8s ease 0.4s forwards;}
-.days-badge-inner{display:inline-flex;flex-direction:column;align-items:center;gap:4px;padding:14px 32px;border:1px solid var(--blush-light);border-radius:2px;background:var(--blush-faint);}
-.days-row{display:flex;align-items:baseline;gap:20px;}
+/* ── DAYS ── */
+.days-badge{text-align:center;margin-bottom:18px;}
+.days-badge-inner{display:inline-flex;flex-direction:column;align-items:center;gap:4px;padding:12px 28px;border:1px solid var(--blush-light);border-radius:4px;background:var(--blush-faint);}
+.days-row{display:flex;align-items:baseline;gap:16px;}
 .days-block{text-align:center;}
-.days-num{font-family:'Ma Shan Zheng',cursive;font-size:30px;color:var(--blush);line-height:1;display:block;}
-.days-label{font-size:10px;color:#a06060;letter-spacing:0.15em;font-weight:300;display:block;margin-top:2px;}
-.days-divider{font-size:18px;color:var(--blush-light);font-weight:300;margin-bottom:4px;}
+.days-num{font-family:'Ma Shan Zheng',cursive;font-size:28px;color:var(--blush);line-height:1;display:block;transition:transform 0.3s cubic-bezier(.34,1.56,.64,1);}
+.days-num.bump{transform:scale(1.25);}
+.days-label{font-size:9px;color:#a06060;letter-spacing:0.12em;font-weight:300;display:block;margin-top:2px;}
+.days-divider{font-size:16px;color:var(--blush-light);font-weight:300;}
 
-/* EPIGRAPH */
-.epigraph{text-align:center;margin-bottom:32px;padding:16px 44px;border-top:1px solid rgba(180,150,120,0.28);border-bottom:1px solid rgba(180,150,120,0.28);position:relative;opacity:0;animation:riseIn 0.8s ease 0.55s forwards;}
-.epigraph::before,.epigraph::after{content:'※';position:absolute;color:var(--ink-faint);font-size:10px;top:50%;transform:translateY(-50%);}
-.epigraph::before{left:14px;}.epigraph::after{right:14px;}
-.epigraph p{font-size:13.5px;color:var(--ink-light);letter-spacing:0.18em;line-height:2;font-weight:300;}
+/* ── EPIGRAPH ── */
+.epigraph{text-align:center;margin-bottom:20px;padding:14px 36px;border-top:1px solid rgba(180,150,120,0.28);border-bottom:1px solid rgba(180,150,120,0.28);position:relative;}
+.epigraph::before,.epigraph::after{content:'※';position:absolute;color:var(--ink-faint);font-size:9px;top:50%;transform:translateY(-50%);}
+.epigraph::before{left:12px;}.epigraph::after{right:12px;}
+.epigraph p{font-size:12.5px;color:var(--ink-light);letter-spacing:0.16em;line-height:2;font-weight:300;}
 
-/* SUBTLE NOTE */
-.subtle-note{text-align:center;font-size:11px;color:var(--ink-faint);letter-spacing:0.18em;font-weight:300;margin-bottom:28px;opacity:0;animation:riseIn 0.8s ease 0.7s forwards;}
+/* ── SUBTLE NOTE ── */
+.subtle-note{text-align:center;font-size:10px;color:var(--ink-faint);letter-spacing:0.16em;font-weight:300;margin-bottom:20px;}
 
-/* PROGRESS */
-.progress-section{margin-bottom:28px;opacity:0;animation:riseIn 0.7s ease 0.85s forwards;}
-.progress-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
-.progress-label{font-size:11px;color:var(--ink-faint);letter-spacing:0.12em;}
-.progress-nums{font-size:11px;color:var(--blush);letter-spacing:0.08em;}
-.progress-track{width:100%;height:3px;background:var(--paper-aged);border-radius:2px;overflow:hidden;margin-bottom:14px;}
+/* ── PROGRESS ── */
+.progress-section{margin-bottom:20px;}
+.progress-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
+.progress-label{font-size:10px;color:var(--ink-faint);letter-spacing:0.1em;}
+.progress-nums{font-size:10px;color:var(--blush);letter-spacing:0.06em;}
+.progress-track{width:100%;height:2px;background:var(--paper-aged);border-radius:2px;overflow:hidden;margin-bottom:10px;}
 .progress-fill{height:100%;background:linear-gradient(90deg,var(--blush-light),var(--blush));border-radius:2px;transition:width 0.8s cubic-bezier(.4,0,.2,1);width:0%;}
-.achievements{display:flex;gap:8px;flex-wrap:wrap;}
-.badge-item{font-size:10px;padding:3px 10px;border-radius:2px;letter-spacing:0.08em;border:0.5px solid var(--paper-aged);color:var(--ink-faint);background:transparent;transition:all 0.4s;}
+.achievements{display:flex;gap:6px;flex-wrap:wrap;}
+.badge-item{font-size:9px;padding:3px 9px;border-radius:2px;letter-spacing:0.07em;border:0.5px solid var(--paper-aged);color:var(--ink-faint);background:transparent;transition:all 0.4s;cursor:pointer;}
 .badge-item.unlocked{background:var(--blush-faint);border-color:var(--blush-light);color:#8a4040;}
 
-/* SEARCH BAR */
-.search-bar{margin-bottom:16px;opacity:0;animation:riseIn 0.7s ease 0.9s forwards;}
-.search-input{width:100%;background:transparent;border:none;border-bottom:1px solid var(--paper-aged);padding:7px 4px;font-family:'Noto Serif SC',serif;font-size:13px;color:var(--ink-light);letter-spacing:0.08em;outline:none;font-weight:300;margin-bottom:10px;}
+/* ── SEARCH ── */
+.search-bar{margin-bottom:14px;}
+.search-input{width:100%;background:transparent;border:none;border-bottom:1px solid var(--paper-aged);padding:6px 4px;font-family:'Noto Serif SC',serif;font-size:12px;color:var(--ink-light);letter-spacing:0.07em;outline:none;font-weight:300;margin-bottom:8px;}
 .search-input:focus{border-bottom-color:var(--blush);}
-.search-input::placeholder{color:var(--ink-faint);font-size:12px;}
-.filter-tags{display:flex;gap:8px;flex-wrap:wrap;}
-.filter-tag{font-size:10px;padding:3px 10px;border-radius:2px;letter-spacing:0.1em;border:0.5px solid var(--paper-aged);color:var(--ink-faint);cursor:pointer;transition:all 0.2s;background:transparent;}
+.search-input::placeholder{color:var(--ink-faint);font-size:11px;}
+.filter-tags{display:flex;gap:6px;}
+.filter-tag{font-size:9px;padding:3px 9px;border-radius:2px;letter-spacing:0.08em;border:0.5px solid var(--paper-aged);color:var(--ink-faint);cursor:pointer;transition:all 0.2s;}
 .filter-tag.active{background:var(--blush-faint);border-color:var(--blush-light);color:#8a4040;}
 
-/* REWARD MODAL */
-.reward-emoji{font-size:40px;margin-bottom:10px;}
-.reward-text{font-size:13.5px;color:var(--ink-light);line-height:2.1;letter-spacing:0.12em;font-weight:300;white-space:pre-line;margin-bottom:8px;}
-
-/* HISTORY */
-.wish-history{font-size:10px;color:var(--ink-faint);letter-spacing:0.08em;margin-top:4px;line-height:1.7;}
-.wish-history-count{display:inline-block;background:var(--blush-faint);color:var(--blush);border-radius:2px;padding:1px 7px;font-size:10px;margin-right:4px;}
-
-/* WISH LIST */
+/* ── WISH LIST ── */
 .wish-list{list-style:none;}
-.wish-item{display:flex;align-items:flex-start;gap:14px;padding:13px 8px;border-bottom:1px solid rgba(180,150,120,0.11);cursor:pointer;transition:background 0.25s,padding-left 0.25s;opacity:0;animation:riseIn 0.5s ease both;}
-.wish-item:hover{background:rgba(212,135,138,0.04);padding-left:14px;}
-.wish-item.special{background:var(--blush-faint);border:1px solid var(--blush-light);border-radius:2px;padding:15px 18px;margin-bottom:5px;cursor:default;}
-.wish-item.special:hover{padding-left:18px;background:var(--blush-faint);}
+.wish-item{display:flex;align-items:flex-start;gap:12px;padding:12px 6px;border-bottom:1px solid rgba(180,150,120,0.11);cursor:pointer;transition:background 0.2s,padding-left 0.2s;}
+.wish-item:hover,.wish-item:active{background:rgba(212,135,138,0.04);padding-left:12px;}
+.wish-item.special{background:var(--blush-faint);border:1px solid var(--blush-light);border-radius:2px;padding:13px 16px;margin-bottom:4px;cursor:default;}
+.wish-item.special:hover{padding-left:16px;}
 .wish-item.user-added{border-left:2px solid var(--blush-light);}
-
-.checkbox{width:17px;height:17px;border:1px solid var(--ink-faint);border-radius:2px;flex-shrink:0;margin-top:3px;display:flex;align-items:center;justify-content:center;transition:all 0.3s;font-size:11px;}
+.checkbox{width:16px;height:16px;border:1px solid var(--ink-faint);border-radius:2px;flex-shrink:0;margin-top:3px;display:flex;align-items:center;justify-content:center;transition:all 0.3s;font-size:10px;}
 .wish-item.done .checkbox{border-color:var(--blush);background:var(--blush-faint);color:var(--blush);}
 .wish-item.done .checkbox::after{content:'✓';}
 .wish-item.special .checkbox{border-color:#c07070;background:var(--blush-light);color:#c07070;}
 .wish-item.special .checkbox::after{content:'✓';}
-
-.wish-num{font-size:10px;color:var(--ink-faint);min-width:20px;margin-top:4px;letter-spacing:0.05em;font-weight:300;}
-.wish-text{font-size:14px;color:var(--ink-light);line-height:1.85;letter-spacing:0.07em;font-weight:300;flex:1;transition:all 0.35s;}
+.wish-num{font-size:9px;color:var(--ink-faint);min-width:18px;margin-top:3px;letter-spacing:0.04em;font-weight:300;}
+.wish-text{font-size:13px;color:var(--ink-light);line-height:1.8;letter-spacing:0.06em;font-weight:300;flex:1;transition:all 0.3s;}
 .wish-item.done .wish-text{color:var(--ink-faint);text-decoration:line-through;text-decoration-color:var(--blush-light);}
 .wish-item.special .wish-text{color:#6a3535;font-weight:400;}
 .wish-item.special.done .wish-text{text-decoration:none;}
-
-.wish-tag{font-size:10px;color:#8a4a4a;background:var(--blush-light);padding:2px 9px;border-radius:2px;margin-top:5px;letter-spacing:0.09em;display:inline-block;}
-
-.wish-actions{display:flex;gap:4px;align-items:center;flex-shrink:0;opacity:0;transition:opacity 0.2s;}
+.wish-tag{font-size:9px;color:#8a4a4a;background:var(--blush-light);padding:2px 8px;border-radius:2px;margin-top:4px;letter-spacing:0.08em;display:inline-block;}
+.wish-actions{display:flex;gap:3px;align-items:center;flex-shrink:0;opacity:0;transition:opacity 0.2s;}
 .wish-item:hover .wish-actions{opacity:1;}
-.wish-action-btn{background:none;border:0.5px solid var(--paper-aged);border-radius:2px;width:20px;height:20px;font-size:12px;color:var(--ink-faint);cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;transition:all 0.2s;font-family:serif;}
+.wish-action-btn{background:none;border:0.5px solid var(--paper-aged);border-radius:2px;width:20px;height:20px;font-size:11px;color:var(--ink-faint);cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;transition:all 0.2s;}
 .wish-action-btn:hover{background:var(--blush-faint);border-color:var(--blush-light);color:var(--blush);}
+.wish-history-count{display:inline-block;background:var(--blush-faint);color:var(--blush);border-radius:2px;padding:1px 6px;font-size:9px;margin-right:3px;}
+.memory-entries{margin-top:4px;}
+.memory-entry{font-size:9px;color:var(--ink-faint);letter-spacing:0.05em;line-height:1.8;padding:3px 0;border-bottom:1px dashed rgba(180,150,120,0.12);}
+.memory-entry:last-child{border-bottom:none;}
+.memory-entry-date{color:var(--blush);margin-right:5px;}
+.memory-entry-loc{color:var(--ink-faint);opacity:0.7;font-size:8px;margin-left:3px;}
+.memory-entry-text{display:block;color:var(--ink-light);font-size:10px;margin-top:1px;}
 
-/* ADD WISH */
-.add-wish-area{margin-top:20px;padding-top:16px;border-top:1px dashed rgba(180,150,120,0.3);opacity:0;animation:riseIn 0.7s ease 1.6s forwards;}
-.add-wish-btn{display:flex;align-items:center;gap:8px;cursor:pointer;padding:10px 8px;color:var(--ink-faint);font-size:12px;letter-spacing:0.15em;font-family:'Noto Serif SC',serif;background:none;border:none;transition:color 0.2s;}
+/* ── ADD WISH ── */
+.add-wish-area{margin-top:16px;padding-top:14px;border-top:1px dashed rgba(180,150,120,0.3);}
+.add-wish-btn{display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px 6px;color:var(--ink-faint);font-size:11px;letter-spacing:0.13em;font-family:'Noto Serif SC',serif;background:none;border:none;transition:color 0.2s;}
 .add-wish-btn:hover{color:var(--blush);}
-.add-wish-form{display:none;margin-top:8px;gap:8px;align-items:center;}
+.add-wish-form{display:none;margin-top:6px;gap:8px;align-items:center;}
 .add-wish-form.open{display:flex;}
-.add-wish-input{flex:1;background:transparent;border:none;border-bottom:1px solid var(--paper-aged);padding:6px 4px;font-family:'Noto Serif SC',serif;font-size:13px;color:var(--ink-light);letter-spacing:0.08em;outline:none;font-weight:300;}
+.add-wish-input{flex:1;background:transparent;border:none;border-bottom:1px solid var(--paper-aged);padding:5px 4px;font-family:'Noto Serif SC',serif;font-size:12px;color:var(--ink-light);outline:none;font-weight:300;}
 .add-wish-input:focus{border-bottom-color:var(--blush);}
-.add-wish-input::placeholder{color:var(--ink-faint);font-size:12px;}
-.add-wish-submit{background:none;border:0.5px solid var(--blush-light);border-radius:2px;padding:5px 14px;font-family:'Noto Serif SC',serif;font-size:11px;color:#8a4a4a;cursor:pointer;letter-spacing:0.1em;transition:background 0.2s;}
-.add-wish-submit:hover{background:var(--blush-faint);}
+.add-wish-input::placeholder{color:var(--ink-faint);font-size:11px;}
+.add-wish-submit{background:none;border:0.5px solid var(--blush-light);border-radius:2px;padding:4px 12px;font-family:'Noto Serif SC',serif;font-size:10px;color:#8a4a4a;cursor:pointer;}
 
-/* CAPSULE SECTION */
-.capsule-section{margin-top:36px;padding-top:20px;border-top:1px dashed rgba(180,150,120,0.3);opacity:0;animation:riseIn 0.7s ease 1.8s forwards;}
-.capsule-title{font-size:11px;color:var(--ink-faint);letter-spacing:0.2em;text-align:center;margin-bottom:16px;}
-.capsules{display:flex;flex-direction:column;gap:10px;}
-.capsule-item{display:flex;align-items:center;gap:14px;padding:14px 18px;border:0.5px solid var(--paper-aged);border-radius:2px;background:rgba(255,255,255,0.5);transition:all 0.3s;cursor:default;}
+/* ── SECTION TITLE ── */
+.sec-title{font-size:10px;color:var(--ink-faint);letter-spacing:0.2em;text-align:center;margin:24px 0 14px;position:relative;}
+.sec-title::before,.sec-title::after{content:'·';margin:0 8px;}
+
+/* ── WE TAB ── */
+.msg-board{margin-bottom:20px;}
+.msg-input-area{display:flex;gap:8px;align-items:flex-end;margin-bottom:14px;}
+.msg-who{display:flex;gap:6px;margin-bottom:8px;}
+.msg-who-btn{font-size:10px;padding:4px 12px;border-radius:2px;border:0.5px solid var(--paper-aged);color:var(--ink-faint);cursor:pointer;font-family:'Noto Serif SC',serif;background:transparent;transition:all 0.2s;letter-spacing:0.08em;}
+.msg-who-btn.active{background:var(--blush-faint);border-color:var(--blush-light);color:#8a4040;}
+.msg-textarea{flex:1;background:transparent;border:none;border-bottom:1px solid var(--paper-aged);padding:6px 4px;font-family:'Noto Serif SC',serif;font-size:12px;color:var(--ink-light);outline:none;font-weight:300;resize:none;line-height:1.7;}
+.msg-textarea:focus{border-bottom-color:var(--blush);}
+.msg-send-btn{background:var(--blush-faint);border:0.5px solid var(--blush-light);border-radius:2px;padding:6px 14px;font-family:'Noto Serif SC',serif;font-size:11px;color:#8a4040;cursor:pointer;white-space:nowrap;letter-spacing:0.1em;}
+.msg-list{display:flex;flex-direction:column;gap:10px;}
+.msg-item{padding:12px 14px;border-radius:4px;border:0.5px solid var(--paper-aged);background:rgba(255,255,255,0.5);}
+.msg-item.from-him{border-left:2px solid var(--blush);background:var(--blush-faint);}
+.msg-item.from-her{border-left:2px solid #9b8ea0;background:#faf8ff;}
+.msg-meta{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
+.msg-author{font-size:10px;letter-spacing:0.1em;font-weight:400;}
+.msg-item.from-him .msg-author{color:var(--blush);}
+.msg-item.from-her .msg-author{color:#9b59b6;}
+.msg-date{font-size:9px;color:var(--ink-faint);letter-spacing:0.06em;}
+.msg-text{font-size:13px;color:var(--ink-light);line-height:1.9;letter-spacing:0.07em;font-weight:300;}
+.msg-delete{background:none;border:none;font-size:12px;color:var(--ink-faint);cursor:pointer;padding:0 2px;opacity:0.5;}
+.msg-delete:hover{opacity:1;color:var(--blush);}
+
+/* ── CAPSULE SECTION ── */
+.capsule-section{margin-top:20px;padding-top:16px;border-top:1px dashed rgba(180,150,120,0.3);}
+.capsule-title{font-size:10px;color:var(--ink-faint);letter-spacing:0.18em;text-align:center;margin-bottom:12px;}
+.capsules{display:flex;flex-direction:column;gap:8px;}
+.capsule-item{display:flex;align-items:center;gap:12px;padding:12px 16px;border:0.5px solid var(--paper-aged);border-radius:2px;background:rgba(255,255,255,0.5);cursor:default;}
 .capsule-item.unlocked{border-color:var(--blush-light);background:var(--blush-faint);cursor:pointer;}
 .capsule-item.unlocked:hover{background:#fdeaea;}
-.capsule-envelope{font-size:22px;flex-shrink:0;}
+.capsule-envelope{font-size:20px;flex-shrink:0;}
 .capsule-info{flex:1;}
-.capsule-trigger{font-size:11px;color:var(--ink-faint);letter-spacing:0.1em;font-weight:300;}
-.capsule-status{font-size:10px;color:var(--ink-faint);letter-spacing:0.1em;margin-top:3px;}
+.capsule-trigger{font-size:10px;color:var(--ink-faint);letter-spacing:0.09em;font-weight:300;}
+.capsule-status{font-size:9px;color:var(--ink-faint);letter-spacing:0.09em;margin-top:2px;}
 .capsule-item.unlocked .capsule-status{color:#c07070;}
 
-/* FOOTER */
-.footer{margin-top:56px;padding-top:28px;border-top:1px solid var(--paper-aged);text-align:center;opacity:0;animation:riseIn 0.8s ease 2s forwards;position:relative;}
-.footer-text{font-size:11px;color:var(--ink-faint);letter-spacing:0.22em;line-height:2.4;font-weight:300;}
-.footer-sig{font-family:'Ma Shan Zheng',cursive;font-size:18px;color:var(--blush);margin-top:14px;letter-spacing:0.25em;}
-.footer-dots{margin:10px 0;font-size:10px;color:var(--paper-aged);letter-spacing:0.4em;}
-/* hidden dot for secret item */
-.secret-dot{display:inline-block;width:5px;height:5px;border-radius:50%;background:rgba(212,135,138,0.25);cursor:pointer;margin-top:20px;transition:background 0.3s;}
-.secret-dot:hover{background:var(--blush-light);}
+/* ── MUYU ── */
+.poke-section{margin-top:24px;padding:22px 20px 20px;border:1px dashed rgba(180,150,120,0.3);border-radius:4px;text-align:center;background:rgba(250,246,240,0.6);}
+.poke-label{font-size:10px;color:var(--ink-faint);letter-spacing:0.2em;margin-bottom:4px;font-weight:300;}
+.poke-sublabel{font-size:9px;color:rgba(156,138,122,0.55);letter-spacing:0.13em;margin-bottom:18px;font-weight:300;}
+.poke-heart-wrap{display:inline-block;position:relative;cursor:pointer;margin-bottom:12px;}
+.poke-heart{display:block;user-select:none;transform-origin:center 30%;}
+.poke-heart-wrap.poked .poke-heart{animation:muyuHit 0.45s cubic-bezier(.36,.07,.19,.97) forwards;}
+@keyframes muyuHit{0%{transform:rotate(0deg)}15%{transform:rotate(-14deg) translateY(-4px)}35%{transform:rotate(10deg) translateY(2px)}55%{transform:rotate(-6deg) translateY(-1px)}75%{transform:rotate(3deg)}100%{transform:rotate(0deg)}}
+.poke-ripple{position:absolute;top:55%;left:50%;width:0;height:0;border-radius:50%;background:rgba(180,150,120,0.2);transform:translate(-50%,-50%);pointer-events:none;}
+.poke-ripple.go{animation:rippleOut 0.65s ease forwards;}
+@keyframes rippleOut{to{width:110px;height:110px;opacity:0;}}
+.merit-float{position:absolute;font-family:'Ma Shan Zheng',cursive;font-size:12px;color:var(--blush);pointer-events:none;top:0;left:50%;transform:translateX(-50%);opacity:0;}
+.merit-float.go{animation:meritRise 1.2s ease forwards;}
+@keyframes meritRise{0%{opacity:1;transform:translateX(-50%) translateY(0)}100%{opacity:0;transform:translateX(-50%) translateY(-44px)}}
+.poke-hint{font-size:10px;color:var(--ink-faint);letter-spacing:0.12em;margin-bottom:0;font-weight:300;min-height:14px;transition:color 0.4s;}
+.poke-count{font-size:9px;color:rgba(156,138,122,0.5);letter-spacing:0.09em;margin-top:5px;font-weight:300;}
 
-/* OVERLAY + MODALS */
+/* ── MEMORIAL TAB ── */
+.memorial-header{text-align:center;margin-bottom:20px;}
+.festival-banner{padding:20px;border-radius:4px;text-align:center;margin-bottom:20px;border:1px solid var(--blush-light);background:var(--blush-faint);}
+.festival-icon{font-size:36px;margin-bottom:8px;}
+.festival-name{font-family:'Ma Shan Zheng',cursive;font-size:22px;color:var(--blush);letter-spacing:0.2em;margin-bottom:4px;}
+.festival-msg{font-size:12px;color:var(--ink-light);letter-spacing:0.1em;font-weight:300;line-height:1.8;}
+.countdown-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px;}
+.countdown-card{padding:14px;border:0.5px solid var(--paper-aged);border-radius:4px;background:rgba(255,255,255,0.5);text-align:center;}
+.countdown-card.highlight{border-color:var(--blush-light);background:var(--blush-faint);}
+.countdown-num{font-family:'Ma Shan Zheng',cursive;font-size:28px;color:var(--blush);line-height:1;}
+.countdown-label{font-size:9px;color:var(--ink-faint);letter-spacing:0.12em;margin-top:4px;font-weight:300;}
+
+/* ── MEMORY MODAL ── */
+.memory-modal-wide{max-width:360px;width:92%;padding:24px 24px 18px;}
+.memory-wish-title{font-size:11px;color:var(--ink-faint);letter-spacing:0.13em;margin-bottom:14px;font-weight:300;}
+.memory-textarea{width:100%;background:transparent;border:none;border-bottom:1px solid var(--paper-aged);padding:7px 4px;font-family:'Noto Serif SC',serif;font-size:12px;color:var(--ink-light);outline:none;font-weight:300;resize:none;line-height:1.8;margin-bottom:4px;}
+.memory-textarea:focus{border-bottom-color:var(--blush);}
+.memory-textarea::placeholder{color:var(--ink-faint);font-size:11px;}
+.memory-char-count{font-size:9px;color:var(--ink-faint);text-align:right;margin-bottom:10px;}
+.memory-location{font-size:10px;color:var(--ink-faint);letter-spacing:0.09em;padding:7px 0;border-top:1px dashed rgba(180,150,120,0.2);margin-bottom:10px;}
+.memory-location.loading{color:var(--blush);}
+.memory-btns{display:flex;gap:8px;}
+.memory-btn{flex:1;padding:8px;border:0.5px solid var(--blush-light);border-radius:2px;font-family:'Noto Serif SC',serif;font-size:10px;letter-spacing:0.1em;cursor:pointer;}
+.memory-btn-primary{background:var(--blush-faint);color:#8a4040;}
+.memory-btn-skip{background:transparent;color:var(--ink-faint);border-color:var(--paper-aged);}
+
+/* ── OVERLAY + MODALS ── */
 .overlay{position:fixed;inset:0;background:rgba(44,33,24,0.18);z-index:99;opacity:0;pointer-events:none;transition:opacity 0.4s;}
 .overlay.show{opacity:1;pointer-events:auto;}
-
-.modal{position:fixed;top:50%;left:50%;transform:translate(-50%,-44%) scale(0.96);background:var(--paper);border:1px solid var(--paper-aged);padding:36px 40px 28px;text-align:center;z-index:100;opacity:0;pointer-events:none;transition:opacity 0.35s,transform 0.35s cubic-bezier(.34,1.56,.64,1);max-width:310px;width:88%;}
+.modal{position:fixed;top:50%;left:50%;transform:translate(-50%,-44%) scale(0.96);background:var(--paper);border:1px solid var(--paper-aged);padding:30px 32px 24px;text-align:center;z-index:100;opacity:0;pointer-events:none;transition:opacity 0.35s,transform 0.35s cubic-bezier(.34,1.56,.64,1);max-width:310px;width:88%;}
 .modal.show{opacity:1;pointer-events:auto;transform:translate(-50%,-50%) scale(1);}
-
-.modal-ornament{font-family:'Ma Shan Zheng',cursive;font-size:20px;color:var(--blush);margin-bottom:4px;letter-spacing:0.3em;}
-.modal-subtitle{font-size:11px;color:var(--ink-faint);letter-spacing:0.14em;margin-bottom:18px;font-weight:300;}
-.modal-divider{width:32px;height:1px;background:var(--paper-aged);margin:0 auto 18px;}
-.modal-quote{font-size:13.5px;color:var(--ink-light);line-height:2.1;letter-spacing:0.12em;font-weight:300;margin-bottom:10px;white-space:pre-line;}
-.modal-source{font-size:11px;color:var(--ink-faint);letter-spacing:0.15em;}
-.modal-close{margin-top:20px;font-size:10px;color:var(--ink-faint);cursor:pointer;letter-spacing:0.2em;border:none;background:none;font-family:'Noto Serif SC',serif;border-top:1px solid var(--paper-aged);padding-top:14px;width:100%;display:block;}
+.modal-ornament{font-family:'Ma Shan Zheng',cursive;font-size:18px;color:var(--blush);margin-bottom:4px;letter-spacing:0.28em;}
+.modal-subtitle{font-size:10px;color:var(--ink-faint);letter-spacing:0.12em;margin-bottom:16px;font-weight:300;}
+.modal-divider{width:28px;height:1px;background:var(--paper-aged);margin:0 auto 16px;}
+.modal-quote{font-size:13px;color:var(--ink-light);line-height:2;letter-spacing:0.1em;font-weight:300;margin-bottom:10px;white-space:pre-line;}
+.modal-source{font-size:10px;color:var(--ink-faint);letter-spacing:0.13em;}
+.modal-close{margin-top:18px;font-size:9px;color:var(--ink-faint);cursor:pointer;letter-spacing:0.18em;border:none;background:none;font-family:'Noto Serif SC',serif;border-top:1px solid var(--paper-aged);padding-top:12px;width:100%;display:block;}
 .modal-close:hover{color:var(--ink-light);}
+.capsule-letter{font-size:28px;margin-bottom:10px;}
+.capsule-from{font-size:12px;color:var(--ink-light);line-height:2;letter-spacing:0.1em;font-weight:300;white-space:pre-line;margin-bottom:8px;}
+.capsule-sig{font-family:'Ma Shan Zheng',cursive;font-size:15px;color:var(--blush);letter-spacing:0.18em;}
+.secret-content{font-size:13px;color:var(--ink-light);line-height:2.1;letter-spacing:0.1em;font-weight:300;}
+.secret-note{font-size:10px;color:var(--ink-faint);margin-top:10px;letter-spacing:0.09em;}
+.reward-emoji{font-size:36px;margin-bottom:8px;}
+.reward-text{font-size:13px;color:var(--ink-light);line-height:2;letter-spacing:0.1em;font-weight:300;white-space:pre-line;margin-bottom:8px;}
 
-/* CAPSULE MODAL */
-.capsule-letter{font-size:32px;margin-bottom:12px;}
-.capsule-from{font-size:13px;color:var(--ink-light);line-height:2;letter-spacing:0.12em;font-weight:300;white-space:pre-line;margin-bottom:8px;}
-.capsule-sig{font-family:'Ma Shan Zheng',cursive;font-size:16px;color:var(--blush);letter-spacing:0.2em;}
-
-/* SECRET MODAL */
-.secret-content{font-size:14px;color:var(--ink-light);line-height:2.2;letter-spacing:0.12em;font-weight:300;}
-.secret-note{font-size:11px;color:var(--ink-faint);margin-top:12px;letter-spacing:0.1em;}
-
-/* DIAMOND MODAL */
-.diamond-wrap{position:relative;width:100px;height:100px;margin:0 auto 16px;}
-.diamond-svg{width:100px;height:100px;animation:diamondSpin 6s linear infinite;}
-@keyframes diamondSpin{0%{filter:drop-shadow(0 0 6px #b8d4ff) drop-shadow(0 0 14px #e0c8ff);}25%{filter:drop-shadow(0 0 10px #ffd6e0) drop-shadow(0 0 22px #c8e8ff);}50%{filter:drop-shadow(0 0 8px #d4f0ff) drop-shadow(0 0 18px #ffe0f0);}75%{filter:drop-shadow(0 0 12px #e8d4ff) drop-shadow(0 0 24px #d0f4ff);}100%{filter:drop-shadow(0 0 6px #b8d4ff) drop-shadow(0 0 14px #e0c8ff);}}
+/* ── DIAMOND ── */
+.diamond-wrap{position:relative;width:90px;height:90px;margin:0 auto 14px;}
+.diamond-svg{width:90px;height:90px;animation:diamondSpin 6s linear infinite;}
+@keyframes diamondSpin{0%{filter:drop-shadow(0 0 6px #b8d4ff) drop-shadow(0 0 14px #e0c8ff);}50%{filter:drop-shadow(0 0 10px #ffd6e0) drop-shadow(0 0 20px #c8e8ff);}100%{filter:drop-shadow(0 0 6px #b8d4ff) drop-shadow(0 0 14px #e0c8ff);}}
 .diamond-sparkles{position:absolute;inset:0;pointer-events:none;}
-.sp{position:absolute;font-size:12px;animation:spAnim 2s ease-in-out infinite;}
-.sp:nth-child(1){top:0;left:50%;transform:translateX(-50%);animation-delay:0s;}
+.sp{position:absolute;font-size:11px;animation:spAnim 2s ease-in-out infinite;}
+.sp:nth-child(1){top:0;left:50%;transform:translateX(-50%);}
 .sp:nth-child(2){top:20%;right:0;animation-delay:0.4s;}
 .sp:nth-child(3){bottom:10%;right:5%;animation-delay:0.8s;}
 .sp:nth-child(4){bottom:10%;left:5%;animation-delay:1.2s;}
 .sp:nth-child(5){top:20%;left:0;animation-delay:1.6s;}
 @keyframes spAnim{0%,100%{opacity:0;transform:scale(0.5);}50%{opacity:1;transform:scale(1.2);}}
-.diamond-text{font-size:13px;color:var(--ink-light);line-height:2.1;letter-spacing:0.12em;font-weight:300;margin-bottom:8px;}
+.diamond-text{font-size:12px;color:var(--ink-light);line-height:2;letter-spacing:0.1em;font-weight:300;margin-bottom:8px;}
 
-/* DAYS ANIMATED */
-.days-num{font-family:'Ma Shan Zheng',cursive;font-size:30px;color:var(--blush);line-height:1;display:block;transition:transform 0.3s cubic-bezier(.34,1.56,.64,1);}
-.days-num.bump{transform:scale(1.25);}
-
-/* MUYU SECTION */
-.poke-section{margin-top:40px;padding:28px 24px 24px;border:1px dashed rgba(180,150,120,0.3);border-radius:4px;text-align:center;opacity:0;animation:riseIn 0.7s ease 2s forwards;background:rgba(250,246,240,0.6);}
-.poke-label{font-size:11px;color:var(--ink-faint);letter-spacing:0.22em;margin-bottom:5px;font-weight:300;}
-.poke-sublabel{font-size:10px;color:rgba(156,138,122,0.55);letter-spacing:0.15em;margin-bottom:22px;font-weight:300;}
-.poke-heart-wrap{display:inline-block;position:relative;cursor:pointer;margin-bottom:14px;}
-.poke-heart{display:block;user-select:none;transition:transform 0.1s;transform-origin:center 30%;}
-.poke-heart-wrap:active .poke-heart{transform:rotate(12deg) scale(0.95);}
-.poke-heart-wrap.poked .poke-heart{animation:muyuHit 0.45s cubic-bezier(.36,.07,.19,.97) forwards;}
-@keyframes muyuHit{
-  0%  {transform:rotate(0deg) translateY(0);}
-  15% {transform:rotate(-14deg) translateY(-4px);}
-  35% {transform:rotate(10deg) translateY(2px);}
-  55% {transform:rotate(-6deg) translateY(-1px);}
-  75% {transform:rotate(3deg);}
-  100%{transform:rotate(0deg);}
-}
-.poke-ripple{position:absolute;top:55%;left:50%;width:0;height:0;border-radius:50%;background:rgba(180,150,120,0.2);transform:translate(-50%,-50%);pointer-events:none;}
-.poke-ripple.go{animation:rippleOut 0.65s ease forwards;}
-@keyframes rippleOut{to{width:110px;height:110px;opacity:0;}}
-/* floating 功德 text */
-.merit-float{position:absolute;font-family:'Ma Shan Zheng',cursive;font-size:13px;color:var(--blush);pointer-events:none;top:0;left:50%;transform:translateX(-50%);opacity:0;}
-.merit-float.go{animation:meritRise 1.2s ease forwards;}
-@keyframes meritRise{0%{opacity:1;transform:translateX(-50%) translateY(0);}100%{opacity:0;transform:translateX(-50%) translateY(-44px);}}
-.poke-hint{font-size:11px;color:var(--ink-faint);letter-spacing:0.14em;margin-bottom:0;font-weight:300;min-height:16px;transition:color 0.4s;}
-.poke-count{font-size:10px;color:rgba(156,138,122,0.5);letter-spacing:0.1em;margin-top:6px;font-weight:300;}
-
-/* POKE MODAL */
-.poke-modal-icon{font-size:36px;margin-bottom:10px;}
-.poke-textarea{width:100%;background:transparent;border:none;border-bottom:1px solid var(--paper-aged);padding:8px 4px;font-family:'Noto Serif SC',serif;font-size:13px;color:var(--ink-light);letter-spacing:0.08em;outline:none;font-weight:300;resize:none;line-height:1.8;margin:12px 0 4px;}
+/* ── POKE MODAL ── */
+.poke-modal-icon{font-size:32px;margin-bottom:8px;}
+.poke-textarea{width:100%;background:transparent;border:none;border-bottom:1px solid var(--paper-aged);padding:7px 4px;font-family:'Noto Serif SC',serif;font-size:12px;color:var(--ink-light);outline:none;font-weight:300;resize:none;line-height:1.8;margin:10px 0 4px;}
 .poke-textarea:focus{border-bottom-color:var(--blush);}
-.poke-textarea::placeholder{color:var(--ink-faint);font-size:12px;}
-.poke-char-count{font-size:10px;color:var(--ink-faint);text-align:right;margin-bottom:14px;letter-spacing:0.05em;}
-.poke-send-btn{width:100%;padding:10px;background:var(--blush-faint);border:0.5px solid var(--blush-light);border-radius:2px;font-family:'Noto Serif SC',serif;font-size:12px;color:#8a4040;letter-spacing:0.15em;cursor:pointer;transition:background 0.2s;}
-.poke-send-btn:hover{background:var(--blush-light);}
+.poke-textarea::placeholder{color:var(--ink-faint);font-size:11px;}
+.poke-char-count{font-size:9px;color:var(--ink-faint);text-align:right;margin-bottom:12px;}
+.poke-send-btn{width:100%;padding:9px;background:var(--blush-faint);border:0.5px solid var(--blush-light);border-radius:2px;font-family:'Noto Serif SC',serif;font-size:11px;color:#8a4040;letter-spacing:0.12em;cursor:pointer;}
 .poke-send-btn:disabled{opacity:0.5;cursor:default;}
-.poke-success{text-align:center;padding:8px 0;}
-.poke-success-icon{font-size:32px;margin-bottom:8px;}
-.poke-success-text{font-size:13px;color:var(--ink-light);letter-spacing:0.12em;line-height:2;font-weight:300;}
+.poke-success{text-align:center;padding:6px 0;}
+.poke-success-icon{font-size:28px;margin-bottom:6px;}
+.poke-success-text{font-size:12px;color:var(--ink-light);letter-spacing:0.1em;line-height:1.9;font-weight:300;}
 
-/* MEMORY MODAL */
-.memory-modal-wide{max-width:360px;width:92%;padding:28px 28px 20px;}
-.memory-wish-title{font-size:12px;color:var(--ink-faint);letter-spacing:0.15em;margin-bottom:16px;font-weight:300;}
-.memory-textarea{width:100%;background:transparent;border:none;border-bottom:1px solid var(--paper-aged);padding:8px 4px;font-family:'Noto Serif SC',serif;font-size:13px;color:var(--ink-light);letter-spacing:0.08em;outline:none;font-weight:300;resize:none;line-height:1.8;margin-bottom:4px;}
-.memory-textarea:focus{border-bottom-color:var(--blush);}
-.memory-textarea::placeholder{color:var(--ink-faint);font-size:12px;}
-.memory-char-count{font-size:10px;color:var(--ink-faint);text-align:right;margin-bottom:12px;}
-.memory-location{font-size:11px;color:var(--ink-faint);letter-spacing:0.1em;padding:8px 0;border-top:1px dashed rgba(180,150,120,0.2);margin-bottom:12px;min-height:20px;}
-.memory-location.loading{color:var(--blush);animation:pulse 1.5s ease infinite;}
-@keyframes pulse{0%,100%{opacity:0.5;}50%{opacity:1;}}
-.memory-btns{display:flex;gap:8px;}
-.memory-btn{flex:1;padding:9px;border:0.5px solid var(--blush-light);border-radius:2px;font-family:'Noto Serif SC',serif;font-size:11px;letter-spacing:0.12em;cursor:pointer;transition:background 0.2s;}
-.memory-btn-primary{background:var(--blush-faint);color:#8a4040;}
-.memory-btn-primary:hover{background:var(--blush-light);}
-.memory-btn-skip{background:transparent;color:var(--ink-faint);}
-.memory-btn-skip:hover{background:var(--paper-aged);}
-
-/* MEMORY LIST in wish item */
-.memory-entries{margin-top:6px;}
-.memory-entry{font-size:10px;color:var(--ink-faint);letter-spacing:0.06em;line-height:1.8;padding:4px 0;border-bottom:1px dashed rgba(180,150,120,0.12);}
-.memory-entry:last-child{border-bottom:none;}
-.memory-entry-date{color:var(--blush);margin-right:6px;}
-.memory-entry-loc{color:var(--ink-faint);opacity:0.7;font-size:9px;margin-left:4px;}
-.memory-entry-text{display:block;color:var(--ink-light);font-size:11px;margin-top:1px;}
-
-/* PETALS */
+/* ── PETALS ── */
 .petals{position:fixed;inset:0;pointer-events:none;z-index:98;overflow:hidden;}
 .petal{position:absolute;top:-24px;animation:petalFall linear forwards;opacity:0;}
-@keyframes petalFall{0%{transform:translateY(0) rotate(0deg) scale(1);opacity:0.9;}80%{opacity:0.7;}100%{transform:translateY(105vh) rotate(480deg) scale(0.5);opacity:0;}}
+@keyframes petalFall{0%{transform:translateY(0) rotate(0deg) scale(1);opacity:0.9;}100%{transform:translateY(105vh) rotate(480deg) scale(0.5);opacity:0;}}
 
-@keyframes riseIn{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:translateY(0);}}
+/* ── FOOTER IN MEMORIAL ── */
+.memorial-footer{text-align:center;margin-top:32px;padding-top:20px;border-top:1px solid var(--paper-aged);}
+.footer-text{font-size:10px;color:var(--ink-faint);letter-spacing:0.2em;line-height:2.4;font-weight:300;}
+.footer-sig{font-family:'Ma Shan Zheng',cursive;font-size:16px;color:var(--blush);margin-top:10px;letter-spacing:0.22em;}
+.secret-dot{display:inline-block;width:4px;height:4px;border-radius:50%;background:rgba(212,135,138,0.22);cursor:pointer;margin-top:16px;}
+.secret-dot:hover{background:var(--blush-light);}
+
+/* ── PWA BAR ── */
+#pwaBar{display:none;position:fixed;bottom:56px;left:0;right:0;background:var(--paper);border-top:1px solid var(--paper-aged);padding:10px 16px;z-index:49;align-items:center;gap:10px;}
+
+@keyframes riseIn{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:translateY(0);}}
 </style>
 </head>
 <body>
-<div class="page">
 
-  <!-- WEATHER -->
+<!-- BOTTOM NAV -->
+<nav class="bottom-nav">
+  <div class="nav-item active" onclick="switchTab('tab-wishlist',this)" id="nav-wishlist">
+    <span class="nav-icon">🏠</span>
+    <span class="nav-label">清单</span>
+  </div>
+  <div class="nav-item" onclick="switchTab('tab-we',this)" id="nav-we">
+    <span class="nav-icon">💑</span>
+    <span class="nav-label">我们</span>
+  </div>
+  <div class="nav-item" onclick="switchTab('tab-capsule',this)" id="nav-capsule">
+    <span class="nav-icon">💌</span>
+    <span class="nav-label">信封</span>
+  </div>
+  <div class="nav-item" onclick="switchTab('tab-memorial',this)" id="nav-memorial">
+    <span class="nav-icon">✨</span>
+    <span class="nav-label">纪念</span>
+  </div>
+</nav>
+
+<div class="app-container">
+
+<!-- ══ TAB 1: 清单 ══ -->
+<div class="tab-page active" id="tab-wishlist">
+<div class="page-inner">
+
   <div class="weather-bar" id="weatherBar">
-    <div class="weather-icon" id="weatherIcon">☁️</div>
+    <div class="weather-icon" id="weatherIcon">🌤️</div>
     <div class="weather-info">
       <div class="weather-row1">
-        <span class="weather-location" id="weatherLocation">获取位置中…</span>
+        <span class="weather-location" id="weatherLocation">获取中…</span>
         <span class="weather-temp" id="weatherTemp"></span>
         <span class="weather-desc" id="weatherDesc"></span>
       </div>
@@ -283,15 +335,13 @@ body::before{content:'';position:fixed;inset:0;background-image:repeating-linear
     </div>
   </div>
 
-  <!-- HEADER -->
   <header class="header">
     <div class="date-stamp">写于 二〇二五年 · 五月二十日</div>
     <h1 class="title-main">媚媚的幸福清单</h1>
     <p class="title-sub">三十件 · 关于美好的事</p>
-    <div class="seal" id="sealBtn" title="">已阅<br>记下</div>
+    <div class="seal" id="sealBtn">已阅<br>记下</div>
   </header>
 
-  <!-- DAYS -->
   <div class="days-badge">
     <div class="days-badge-inner">
       <div class="days-row">
@@ -308,15 +358,9 @@ body::before{content:'';position:fixed;inset:0;background-image:repeating-linear
     </div>
   </div>
 
-  <!-- EPIGRAPH -->
-  <div class="epigraph">
-    <p>顺利时要敬畏，不顺时要坚守</p>
-  </div>
-
-  <!-- SPECIAL NOTE subtle -->
+  <div class="epigraph"><p>顺利时要敬畏，不顺时要坚守</p></div>
   <div class="subtle-note">第二十九条与第三十条，我已经替你完成了</div>
 
-  <!-- PROGRESS -->
   <div class="progress-section">
     <div class="progress-header">
       <span class="progress-label">愿望完成进度</span>
@@ -324,80 +368,109 @@ body::before{content:'';position:fixed;inset:0;background-image:repeating-linear
     </div>
     <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
     <div class="achievements">
-      <span class="badge-item" id="badge10" onclick="showMilestone(10)">初心 · 完成10条 🍽️</span>
-      <span class="badge-item" id="badge20" onclick="showMilestone(20)">半程 · 完成20条 📚</span>
-      <span class="badge-item" id="badgeAll" onclick="showMilestone(30)">圆满 · 全部完成 🎁</span>
+      <span class="badge-item" id="badge10" onclick="showMilestone(10)">初心 · 10条 🍽️</span>
+      <span class="badge-item" id="badge20" onclick="showMilestone(20)">半程 · 20条 📚</span>
+      <span class="badge-item" id="badgeAll" onclick="showMilestone(30)">圆满 · 全部 🎁</span>
     </div>
   </div>
 
-  <!-- SEARCH -->
-  <div class="search-bar" id="searchBar">
-    <input class="search-input" id="searchInput" placeholder="搜索愿望…" oninput="filterWishes()" />
-    <div class="filter-tags" id="filterTags">
+  <div class="search-bar">
+    <input class="search-input" id="searchInput" placeholder="搜索愿望…" oninput="filterWishes()"/>
+    <div class="filter-tags">
       <span class="filter-tag active" onclick="setFilter('all',this)">全部</span>
       <span class="filter-tag" onclick="setFilter('done',this)">已完成</span>
       <span class="filter-tag" onclick="setFilter('undone',this)">未完成</span>
     </div>
   </div>
 
-  <!-- WISH LIST -->
   <ul class="wish-list" id="wishList"></ul>
 
-  <!-- ADD WISH -->
   <div class="add-wish-area">
-    <button class="add-wish-btn" id="addWishBtn" onclick="toggleAddForm()">
-      <span style="font-size:14px;color:var(--blush);">＋</span> 写下新的愿望
+    <button class="add-wish-btn" onclick="toggleAddForm()">
+      <span style="font-size:13px;color:var(--blush);">＋</span> 写下新的愿望
     </button>
     <div class="add-wish-form" id="addWishForm">
-      <input class="add-wish-input" id="addWishInput" placeholder="在平凡的日子里，还想要……" maxlength="40" />
+      <input class="add-wish-input" id="addWishInput" placeholder="在平凡的日子里，还想要……" maxlength="40"/>
       <button class="add-wish-submit" onclick="submitWish()">记下</button>
     </div>
   </div>
 
-  <!-- TIME CAPSULES -->
-  <div class="capsule-section">
-    <div class="capsule-title">· 时光信封 ·</div>
+</div>
+</div>
+
+<!-- ══ TAB 2: 我们 ══ -->
+<div class="tab-page" id="tab-we">
+<div class="page-inner">
+
+  <div class="sec-title">每日寄语</div>
+  <div class="msg-board">
+    <div class="msg-who">
+      <button class="msg-who-btn active" id="btnHim" onclick="selectWho('him')">嘟教授说</button>
+      <button class="msg-who-btn" id="btnHer" onclick="selectWho('her')">媚媚说</button>
+    </div>
+    <div style="display:flex;gap:8px;align-items:flex-end;">
+      <textarea class="msg-textarea" id="msgInput" placeholder="写下今天想对她/他说的话…" rows="2" maxlength="200"></textarea>
+      <button class="msg-send-btn" onclick="sendMsg()">发送</button>
+    </div>
+  </div>
+  <div class="msg-list" id="msgList"></div>
+
+  <div class="sec-title">共同愿望</div>
+  <ul class="wish-list" id="togetherList"></ul>
+  <div class="add-wish-area">
+    <button class="add-wish-btn" onclick="toggleAddForm2()">
+      <span style="font-size:13px;color:var(--blush);">＋</span> 添加共同愿望
+    </button>
+    <div class="add-wish-form" id="addTogetherForm">
+      <input class="add-wish-input" id="addTogetherInput" placeholder="我们一起想做的事…" maxlength="40"/>
+      <button class="add-wish-submit" onclick="submitTogether()">记下</button>
+    </div>
+  </div>
+
+  <div class="sec-title">嘟教授的愿望</div>
+  <ul class="wish-list" id="himList"></ul>
+  <div class="add-wish-area">
+    <button class="add-wish-btn" onclick="toggleAddForm3()">
+      <span style="font-size:13px;color:var(--blush);">＋</span> 添加我的愿望
+    </button>
+    <div class="add-wish-form" id="addHimForm">
+      <input class="add-wish-input" id="addHimInput" placeholder="我自己想做的事…" maxlength="40"/>
+      <button class="add-wish-submit" onclick="submitHim()">记下</button>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<!-- ══ TAB 3: 信封 ══ -->
+<div class="tab-page" id="tab-capsule">
+<div class="page-inner">
+
+  <div class="sec-title">时光信封</div>
+  <div class="capsule-section" style="margin-top:0;padding-top:0;border-top:none;">
     <div class="capsules" id="capsulesContainer"></div>
   </div>
 
-  <!-- MUYU SECTION -->
   <div class="poke-section" id="pokeSection">
     <div class="poke-label">· 想他了就敲敲木鱼 ·</div>
     <div class="poke-sublabel">这是我们之间的小秘密</div>
     <div class="poke-heart-wrap" id="pokeHeartWrap" onclick="onPokeClick()">
-      <!-- wooden fish SVG -->
-      <svg class="poke-heart" id="pokeHeart" width="80" height="80" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
+      <svg class="poke-heart" id="pokeHeart" width="80" height="80" viewBox="0 0 80 80">
         <defs>
-          <radialGradient id="wg1" cx="40%" cy="35%" r="60%">
-            <stop offset="0%" stop-color="#c8956a"/>
-            <stop offset="55%" stop-color="#a0693e"/>
-            <stop offset="100%" stop-color="#7a4a28"/>
-          </radialGradient>
-          <radialGradient id="wg2" cx="35%" cy="30%" r="50%">
-            <stop offset="0%" stop-color="#d4a070" stop-opacity="0.7"/>
-            <stop offset="100%" stop-color="#c8956a" stop-opacity="0"/>
-          </radialGradient>
+          <radialGradient id="wg1" cx="40%" cy="35%" r="60%"><stop offset="0%" stop-color="#c8956a"/><stop offset="55%" stop-color="#a0693e"/><stop offset="100%" stop-color="#7a4a28"/></radialGradient>
+          <radialGradient id="wg2" cx="35%" cy="30%" r="50%"><stop offset="0%" stop-color="#d4a070" stop-opacity="0.7"/><stop offset="100%" stop-color="#c8956a" stop-opacity="0"/></radialGradient>
         </defs>
-        <!-- body -->
         <ellipse cx="40" cy="46" rx="26" ry="20" fill="url(#wg1)"/>
-        <!-- shine -->
         <ellipse cx="34" cy="38" rx="10" ry="7" fill="url(#wg2)"/>
-        <!-- tail fin -->
         <path d="M64,38 Q76,28 74,46 Q76,54 64,54 Q70,46 64,38Z" fill="#9a6035"/>
-        <!-- mouth slot -->
         <ellipse cx="17" cy="46" rx="5" ry="3.5" fill="#5a3018"/>
-        <!-- eye -->
         <circle cx="24" cy="40" r="3.5" fill="#3a1c08"/>
         <circle cx="25" cy="39" r="1.2" fill="rgba(255,255,255,0.6)"/>
-        <!-- scale lines -->
         <path d="M36,34 Q42,30 48,34" stroke="#8a5528" stroke-width="1" fill="none" stroke-linecap="round" opacity="0.5"/>
         <path d="M32,40 Q40,35 48,40" stroke="#8a5528" stroke-width="1" fill="none" stroke-linecap="round" opacity="0.4"/>
         <path d="M34,47 Q42,43 50,47" stroke="#8a5528" stroke-width="1" fill="none" stroke-linecap="round" opacity="0.35"/>
-        <!-- top fin -->
         <path d="M35,26 Q40,18 46,26" stroke="#9a6035" stroke-width="1.5" fill="none" stroke-linecap="round"/>
-        <!-- mallet handle -->
         <rect x="52" y="8" width="5" height="22" rx="2.5" fill="#b07840" transform="rotate(20,54,19)"/>
-        <!-- mallet head -->
         <ellipse cx="57" cy="10" rx="7" ry="5" fill="#c89060" transform="rotate(20,57,10)"/>
         <ellipse cx="56" cy="9" rx="4" ry="3" fill="#d4a070" opacity="0.5" transform="rotate(20,56,9)"/>
       </svg>
@@ -408,27 +481,45 @@ body::before{content:'';position:fixed;inset:0;background-image:repeating-linear
     <div class="poke-count" id="pokeCount"></div>
   </div>
 
-  <!-- FOOTER -->
-  <footer class="footer">
+</div>
+</div>
+
+<!-- ══ TAB 4: 纪念 ══ -->
+<div class="tab-page" id="tab-memorial">
+<div class="page-inner">
+
+  <div id="festivalBanner" style="display:none;" class="festival-banner">
+    <div class="festival-icon" id="festivalIcon"></div>
+    <div class="festival-name" id="festivalName"></div>
+    <div class="festival-msg" id="festivalMsg"></div>
+  </div>
+
+  <div class="sec-title">纪念日倒计时</div>
+  <div class="countdown-grid" id="countdownGrid"></div>
+
+  <div class="memorial-footer">
     <p class="footer-text">二〇二五 · 五月 · 二十六日</p>
-    <div class="footer-dots">· · ·</div>
+    <div style="margin:8px 0;font-size:9px;color:var(--paper-aged);letter-spacing:0.3em;">· · ·</div>
     <p class="footer-text">愿你清单上的每一件事<br>都能一一实现</p>
     <p class="footer-sig">与你同在</p>
     <br>
-    <span class="secret-dot" id="secretDot" title=""></span>
-  </footer>
+    <span class="secret-dot" id="secretDot"></span>
+  </div>
 
 </div>
+</div>
+
+</div><!-- end app-container -->
 
 <!-- OVERLAYS -->
 <div class="overlay" id="overlay" onclick="closeModal()"></div>
 
 <!-- MEMORY MODAL -->
 <div class="modal memory-modal-wide" id="memoryModal">
-  <div class="modal-ornament" style="font-size:15px;">记录这一刻 ✨</div>
+  <div class="modal-ornament" style="font-size:14px;">记录这一刻 ✨</div>
   <div class="modal-divider"></div>
   <p class="memory-wish-title" id="memoryWishTitle"></p>
-  <textarea class="memory-textarea" id="memoryInput" placeholder="写下此刻的心情……（可以不写）" maxlength="150" rows="3" oninput="document.getElementById('memoryCharCount').textContent=this.value.length"></textarea>
+  <textarea class="memory-textarea" id="memoryInput" placeholder="写下此刻的心情…（可以不写）" maxlength="150" rows="3" oninput="document.getElementById('memoryCharCount').textContent=this.value.length"></textarea>
   <div class="memory-char-count"><span id="memoryCharCount">0</span> / 150</div>
   <div class="memory-location" id="memoryLocation">📍 获取位置中…</div>
   <div class="memory-btns">
@@ -466,7 +557,7 @@ body::before{content:'';position:fixed;inset:0;background-image:repeating-linear
   <button class="modal-close" onclick="closeModal()">— 轻触关闭 —</button>
 </div>
 
-<!-- SECRET MODAL (item 0) -->
+<!-- SECRET MODAL -->
 <div class="modal" id="secretModal">
   <div class="modal-ornament">第 〇 条</div>
   <div class="modal-divider"></div>
@@ -479,15 +570,15 @@ body::before{content:'';position:fixed;inset:0;background-image:repeating-linear
 <div class="modal" id="pokeModal">
   <div id="pokeModalInner">
     <div class="poke-modal-icon">🪘</div>
-    <div class="modal-ornament" style="font-size:16px;">告诉他你现在的心情</div>
+    <div class="modal-ornament" style="font-size:15px;">告诉他你现在的心情</div>
     <div class="modal-divider"></div>
-    <textarea class="poke-textarea" id="pokeMoodInput" placeholder="此刻想对他说……（可以不写，直接发送）" maxlength="100" rows="3" oninput="updateCharCount()"></textarea>
+    <textarea class="poke-textarea" id="pokeMoodInput" placeholder="此刻想对他说……（可以不写）" maxlength="100" rows="3" oninput="updateCharCount()"></textarea>
     <div class="poke-char-count"><span id="pokeCharNum">0</span> / 100</div>
     <button class="poke-send-btn" id="pokeSendBtn" onclick="sendPoke()">敲他一下 🪘</button>
   </div>
   <div id="pokeSuccessInner" style="display:none;" class="poke-success">
     <div class="poke-success-icon">✉️</div>
-    <p class="poke-success-text">已经悄悄敲到他了<br><span style="font-size:11px;color:var(--ink-faint);">他会知道你在想他的</span></p>
+    <p class="poke-success-text">已经悄悄敲到他了<br><span style="font-size:10px;color:var(--ink-faint);">他会知道你在想他的</span></p>
   </div>
   <button class="modal-close" onclick="closePokeModal()">— 轻触关闭 —</button>
 </div>
@@ -497,51 +588,24 @@ body::before{content:'';position:fixed;inset:0;background-image:repeating-linear
   <div class="diamond-wrap">
     <svg class="diamond-svg" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
       <defs>
-        <linearGradient id="dg1" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" style="stop-color:#ffffff;stop-opacity:1"/>
-          <stop offset="30%" style="stop-color:#d4eeff;stop-opacity:1"/>
-          <stop offset="60%" style="stop-color:#e8d4ff;stop-opacity:1"/>
-          <stop offset="100%" style="stop-color:#ffd6e8;stop-opacity:1"/>
-        </linearGradient>
-        <linearGradient id="dg2" x1="100%" y1="0%" x2="0%" y2="100%">
-          <stop offset="0%" style="stop-color:#c8e8ff;stop-opacity:0.9"/>
-          <stop offset="50%" style="stop-color:#ffffff;stop-opacity:0.7"/>
-          <stop offset="100%" style="stop-color:#f0d4ff;stop-opacity:0.9"/>
-        </linearGradient>
-        <linearGradient id="dg3" x1="50%" y1="0%" x2="50%" y2="100%">
-          <stop offset="0%" style="stop-color:#ffffff;stop-opacity:1"/>
-          <stop offset="100%" style="stop-color:#b8d4ff;stop-opacity:0.8"/>
-        </linearGradient>
-        <filter id="glow">
-          <feGaussianBlur stdDeviation="1.5" result="blur"/>
-          <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-        </filter>
+        <linearGradient id="dg1" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#ffffff"/><stop offset="30%" style="stop-color:#d4eeff"/><stop offset="60%" style="stop-color:#e8d4ff"/><stop offset="100%" style="stop-color:#ffd6e8"/></linearGradient>
+        <linearGradient id="dg2" x1="100%" y1="0%" x2="0%" y2="100%"><stop offset="0%" style="stop-color:#c8e8ff;stop-opacity:0.9"/><stop offset="50%" style="stop-color:#ffffff;stop-opacity:0.7"/><stop offset="100%" style="stop-color:#f0d4ff;stop-opacity:0.9"/></linearGradient>
+        <linearGradient id="dg3" x1="50%" y1="0%" x2="50%" y2="100%"><stop offset="0%" style="stop-color:#ffffff"/><stop offset="100%" style="stop-color:#b8d4ff;stop-opacity:0.8"/></linearGradient>
+        <filter id="glow"><feGaussianBlur stdDeviation="1.5" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
       </defs>
-      <!-- crown top -->
       <polygon points="50,8 30,32 50,26 70,32" fill="url(#dg3)" stroke="rgba(180,210,255,0.5)" stroke-width="0.5" filter="url(#glow)"/>
-      <!-- left crown -->
       <polygon points="8,32 30,32 20,52" fill="url(#dg1)" stroke="rgba(180,210,255,0.4)" stroke-width="0.5"/>
-      <!-- right crown -->
       <polygon points="92,32 70,32 80,52" fill="url(#dg2)" stroke="rgba(200,180,255,0.4)" stroke-width="0.5"/>
-      <!-- center top face -->
       <polygon points="30,32 50,26 70,32 60,52 40,52" fill="url(#dg3)" stroke="rgba(200,220,255,0.5)" stroke-width="0.5" filter="url(#glow)"/>
-      <!-- bottom left -->
       <polygon points="8,32 20,52 40,52 30,32" fill="url(#dg1)" stroke="rgba(180,200,255,0.4)" stroke-width="0.5"/>
-      <!-- bottom right -->
       <polygon points="92,32 80,52 60,52 70,32" fill="url(#dg2)" stroke="rgba(200,180,255,0.4)" stroke-width="0.5"/>
-      <!-- lower left -->
       <polygon points="20,52 40,52 50,92" fill="url(#dg1)" stroke="rgba(180,200,255,0.3)" stroke-width="0.5"/>
-      <!-- lower right -->
       <polygon points="80,52 60,52 50,92" fill="url(#dg2)" stroke="rgba(200,180,255,0.3)" stroke-width="0.5"/>
-      <!-- lower center -->
       <polygon points="40,52 60,52 50,92" fill="url(#dg3)" stroke="rgba(200,220,255,0.4)" stroke-width="0.5" filter="url(#glow)"/>
-      <!-- shine highlight -->
-      <polygon points="40,30 50,26 55,36 45,38" fill="rgba(255,255,255,0.85)" stroke="none"/>
-      <polygon points="33,38 40,36 38,44 31,44" fill="rgba(255,255,255,0.6)" stroke="none"/>
+      <polygon points="40,30 50,26 55,36 45,38" fill="rgba(255,255,255,0.85)"/>
+      <polygon points="33,38 40,36 38,44 31,44" fill="rgba(255,255,255,0.6)"/>
     </svg>
-    <div class="diamond-sparkles">
-      <span class="sp">✦</span><span class="sp">✧</span><span class="sp">✦</span><span class="sp">✧</span><span class="sp">✦</span>
-    </div>
+    <div class="diamond-sparkles"><span class="sp">✦</span><span class="sp">✧</span><span class="sp">✦</span><span class="sp">✧</span><span class="sp">✦</span></div>
   </div>
   <div class="modal-ornament">圆 满</div>
   <div class="modal-divider"></div>
@@ -549,16 +613,16 @@ body::before{content:'';position:fixed;inset:0;background-image:repeating-linear
   <button class="modal-close" onclick="closeModal()">— 轻触关闭 —</button>
 </div>
 
-<div id="pwaBar" style="display:none;position:fixed;bottom:0;left:0;right:0;background:var(--paper);border-top:1px solid var(--paper-aged);padding:12px 20px;z-index:200;align-items:center;gap:12px;box-shadow:0 -2px 12px rgba(44,33,24,0.08);">
-  <div style="flex:1;font-size:12px;color:var(--ink-light);letter-spacing:0.1em;font-family:'Noto Serif SC',serif;">添加到主屏幕，随时打开</div>
-  <button onclick="installPWA()" style="background:var(--blush);border:none;border-radius:2px;padding:7px 16px;font-family:'Noto Serif SC',serif;font-size:12px;color:white;cursor:pointer;letter-spacing:0.1em;">添加</button>
-  <button onclick="document.getElementById('pwaBar').style.display='none'" style="background:none;border:none;font-size:18px;color:var(--ink-faint);cursor:pointer;padding:0 4px;">×</button>
+<div id="pwaBar" style="display:none;position:fixed;bottom:56px;left:0;right:0;background:var(--paper);border-top:1px solid var(--paper-aged);padding:10px 16px;z-index:49;align-items:center;gap:10px;">
+  <div style="flex:1;font-size:11px;color:var(--ink-light);letter-spacing:0.09em;font-family:'Noto Serif SC',serif;">添加到主屏幕，随时打开</div>
+  <button onclick="installPWA()" style="background:var(--blush);border:none;border-radius:2px;padding:6px 14px;font-family:'Noto Serif SC',serif;font-size:11px;color:white;cursor:pointer;">添加</button>
+  <button onclick="document.getElementById('pwaBar').style.display='none'" style="background:none;border:none;font-size:16px;color:var(--ink-faint);cursor:pointer;">×</button>
 </div>
 
 <div class="petals" id="petals"></div>
 
 <script>
-// ── DATA ──
+// ════ DATA ════
 const ORIGINAL_WISHES = [
   {text:"每天都可以睡懒觉"},
   {text:"在平凡的一天收到一束花"},
@@ -591,20 +655,6 @@ const ORIGINAL_WISHES = [
   {text:"有人看完了我的幸福清单并默默记下", pretagDone:"✓ 他做到了"},
   {text:"有人陪我一起完成", pretagDone:"✓ 我们一起"},
 ];
-
-// ── 奖励彩蛋数据（index对应ORIGINAL_WISHES的位置，从0开始）──
-const WISH_REWARDS = {
-  14: { emoji:'🎰', text:'你彩票中50了！\n奖励你现实里的100块，来找我兑换~' },
-  18: { emoji:'🎂', text:'化了漂亮的妆！\n奖励你去吃小蛋糕小甜品，你来选在哪儿！' },
-  22: { emoji:'🍲', text:'冬天手脚不冰凉了！\n奖励你一顿火锅，你来定去哪儿吃！' },
-};
-
-// ── 里程碑奖励 ──
-const MILESTONES = {
-  10: { emoji:'🍽️', text:'完成了10条心愿！\n奖励你一顿你想吃的饭，你来定餐厅，我来买单~' },
-  20: { emoji:'📚', text:'完成了20条心愿！\n奖励你一本你喜欢的书，告诉我想要哪本！' },
-  30: { emoji:'🎁', text:'完成了30条心愿！\n奖励你一个礼物盲盒，充满惊喜，等你来拆！' },
-};
 const WISH_31 = {text:"We wrote our own destiny, and this would always happen…", special:true, tag:"✦ 第三十一条"};
 
 const CAPSULES = [
@@ -612,6 +662,17 @@ const CAPSULES = [
   {trigger:7, label:"当你勾选「在喜欢的城市散步」时开启", title:"给在城市里散步的你", content:"此刻的你在哪儿呢？\n几个人吖？"},
   {trigger:11, label:"当你勾选「一个人出远门旅游」时开启", title:"给出发去远方的你", content:"玩得开心吗？\n一定要注意安全！\n照顾好自己！及时报备！"},
 ];
+
+const WISH_REWARDS = {
+  14:{emoji:'🎰', text:'你彩票中50了！\n奖励你现实里的100块，来找我兑换~'},
+  18:{emoji:'🎂', text:'化了漂亮的妆！\n奖励你去吃小蛋糕小甜品，你来选在哪儿！'},
+  22:{emoji:'🍲', text:'冬天手脚不冰凉了！\n奖励你一顿火锅，你来定去哪儿吃！'},
+};
+const MILESTONES = {
+  10:{emoji:'🍽️', text:'完成了10条心愿！\n奖励你一顿你想吃的饭，你来定餐厅，我来买单~'},
+  20:{emoji:'📚', text:'完成了20条心愿！\n奖励你一本你喜欢的书，告诉我想要哪本！'},
+  30:{emoji:'🎁', text:'完成了30条心愿！\n奖励你一个礼物盲盒，充满惊喜，等你来拆！'},
+};
 
 const QUOTES = [
   {w:"愿懒觉绵长，梦里皆温柔", q:"每个人都有潜在的能量，只是很容易被习惯所掩盖，被时间所迷离。", s:"— 三毛"},
@@ -626,7 +687,7 @@ const QUOTES = [
   {w:"愿雨声替你挡住所有烦扰", q:"轻轻的我走了，正如我轻轻的来。", s:"— 徐志摩"},
   {w:"愿相册里每一张都让你微笑", q:"我爱你，与你无关。", s:"— 木心"},
   {w:"愿远行时，风也顺着你走", q:"一个人至少拥有一个梦想，有一个理由去坚强。", s:"— 三毛"},
-  {w:"愿那一晚，睡得格外香甜", q:"读书多了，容颜自然改变。许多时候，自己可能以为许多看过的书籍都成过眼烟云，不复记忆，其实它们仍是潜在的。", s:"— 三毛"},
+  {w:"愿那一晚，睡得格外香甜", q:"读书多了，容颜自然改变。", s:"— 三毛"},
   {w:"愿微醺之后，有人把你护好", q:"一个人隐居，两个人热闹。", s:"— 木心"},
   {w:"愿好运悄悄跟着你", q:"生命不在于长短，而在于是否精彩。", s:"— 三毛"},
   {w:"愿和好友一起胜利的欢呼声传得很远", q:"青春是一本太仓促的书，我们含着泪，一读再读。", s:"— 席慕蓉"},
@@ -636,7 +697,7 @@ const QUOTES = [
   {w:"愿喜欢的东西都能拥有", q:"生命里有一些人与一些事，你明知意义不大，但仍然要热情认真地去做。", s:"— 三毛"},
   {w:"愿每条视频都有人驻足停留", q:"岁月不饶人，我亦未曾饶过岁月。", s:"— 木心"},
   {w:"愿甜品永远甜，热量永远不算", q:"快乐是人生中最重要的事，其他的可以慢慢来。", s:"— 三毛"},
-  {w:"愿冬天对你格外温柔", q:"愿你在被打击时记起你的珍贵，抵抗恶意；愿你在迷茫时坚信你的珍贵。", s:"— 董卿"},
+  {w:"愿冬天对你格外温柔", q:"愿你在被打击时记起你的珍贵，抵抗恶意。", s:"— 董卿"},
   {w:"愿每一张照片都是惊喜", q:"美丽的女人，美在眼睛里透出来的那股子劲。", s:"— 董卿"},
   {w:"愿妆容精致，从早到晚", q:"优雅不是穿衣打扮，是从内心散发出来的东西。", s:"— 董卿"},
   {w:"愿天气配合你所有的心情", q:"好天气让人觉得活着真好。", s:"— 木心"},
@@ -646,335 +707,360 @@ const QUOTES = [
   {w:"✦ 这一条，你们一起完成", q:"余生，请多指教。", s:"— 他"},
 ];
 
-// ── STATE ──
-const KEY = 'happiness_v3';
+// ════ STATE ════
+const KEY = 'happiness_v4';
 function loadState(){
   try{const s=localStorage.getItem(KEY);if(s)return JSON.parse(s);}catch(e){}
-  return {done:[28,29], userWishes:[], capsuleOpened:[false,false,false], sealClicks:0, history:{}, shownMilestones:[]};
+  return {done:[28,29],userWishes:[],capsuleOpened:[false,false,false],sealClicks:0,history:{},shownMilestones:[],messages:[],togetherWishes:[],himWishes:[]};
 }
 function save(){try{localStorage.setItem(KEY,JSON.stringify(state));}catch(e){}}
-let state = loadState();
-// ensure new fields exist for old saves
+let state=loadState();
 if(!state.history) state.history={};
 if(!state.shownMilestones) state.shownMilestones=[];
+if(!state.messages) state.messages=[];
+if(!state.togetherWishes) state.togetherWishes=[];
+if(!state.himWishes) state.himWishes=[];
 
-// ── DAYS with count-up animation ──
-function animateCount(el, target, duration){
-  const start = performance.now();
-  const from = 0;
+// ════ TAB SWITCHING ════
+function switchTab(tabId, navEl){
+  document.querySelectorAll('.tab-page').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById(tabId).classList.add('active');
+  navEl.classList.add('active');
+  if(tabId==='tab-we'){loadMessages();loadSharedWishes();}
+}
+
+// ════ FESTIVAL DETECTION ════
+const FESTIVALS = [
+  {month:1, day:1, name:'元旦快乐', icon:'🎊', msg:'新的一年，愿你所有的愿望都能实现。', cls:'festival-newyear'},
+  {month:1, day:5, name:'媚媚生日快乐 🎂', icon:'🎂', msg:'今天是你的生日，你出生的那天是这个世界最美好的一天。', cls:'festival-birthday-her'},
+  {month:1, day:11, name:'嘟教授生日快乐 🎂', icon:'🎈', msg:'今天是他的生日，谢谢他来到这个世界遇见你。', cls:'festival-birthday-him'},
+  {month:2, day:14, name:'情人节快乐', icon:'💝', msg:'每一天都是情人节，因为每一天我都爱你。', cls:'festival-valentine'},
+  {month:3, day:8, name:'妇女节快乐', icon:'🌸', msg:'今天是你的节日，愿你永远被温柔以待。', cls:'festival-valentine'},
+  {month:5, day:20, name:'520 我爱你', icon:'💕', msg:'五二〇，爱你。不需要理由，只是爱你。', cls:'festival-anniversary'},
+  {month:5, day:26, name:'一周年纪念日', icon:'💍', msg:'从2025年的今天起，我们开始了这段旅程。谢谢你。', cls:'festival-anniversary'},
+  {month:12, day:24, name:'平安夜快乐', icon:'🎄', msg:'愿这个平安夜，你一切都好。', cls:'festival-christmas'},
+  {month:12, day:25, name:'圣诞快乐', icon:'🎅', msg:'Ho Ho Ho，圣诞快乐，愿你收到所有你想要的礼物。', cls:'festival-christmas'},
+];
+// 七夕（农历7.7）用固定公历近似
+const QIXI_DATES = ['2025-08-29','2026-08-19','2027-08-08'];
+// 春节近似
+const SPRING_DATES = ['2025-01-29','2026-02-17','2027-02-06'];
+
+function checkFestival(){
+  const now = new Date();
+  const m = now.getMonth()+1, d = now.getDate();
+  const dateStr = `${now.getFullYear()}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+  
+  // check monthly anniversary (26th of each month)
+  let fest = null;
+  if(d===26 && !(m===5)){
+    fest={name:`每月${m}月26日纪念日`,icon:'🌸',msg:'又是26号了，我们相识的那天。',cls:'festival-monthly'};
+  }
+  // spring festival
+  if(SPRING_DATES.includes(dateStr)){
+    fest={name:'春节快乐',icon:'🧧',msg:'新春快乐，愿新的一年我们都平安喜乐。',cls:'festival-newyear'};
+  }
+  // qixi
+  if(QIXI_DATES.includes(dateStr)){
+    fest={name:'七夕快乐',icon:'🌌',msg:'牛郎织女一年一会，而我们每天都在一起。',cls:'festival-qixi'};
+  }
+  // fixed festivals
+  for(const f of FESTIVALS){
+    if(f.month===m && f.day===d){ fest=f; break; }
+  }
+  if(fest){
+    document.body.className = fest.cls||'';
+    const banner=document.getElementById('festivalBanner');
+    banner.style.display='block';
+    document.getElementById('festivalIcon').textContent=fest.icon;
+    document.getElementById('festivalName').textContent=fest.name;
+    document.getElementById('festivalMsg').textContent=fest.msg;
+    // festival petals
+    setTimeout(()=>spawnFestivalPetals(fest.cls),500);
+  }
+}
+
+function spawnFestivalPetals(cls){
+  const chars = cls==='festival-christmas'?['❄️','⭐','✨']:
+                cls==='festival-newyear'?['🎊','✨','🎉']:
+                cls==='festival-birthday-her'||cls==='festival-birthday-him'?['🎂','🎈','⭐']:
+                ['🌸','💕','✦','❀'];
+  const box=document.getElementById('petals'); box.innerHTML='';
+  for(let i=0;i<15;i++){
+    const p=document.createElement('div'); p.className='petal';
+    p.textContent=chars[Math.floor(Math.random()*chars.length)];
+    const dur=3+Math.random()*3;
+    p.style.cssText=`left:${Math.random()*100}vw;font-size:${12+Math.random()*14}px;animation-duration:${dur}s;animation-delay:${Math.random()*2}s;`;
+    box.appendChild(p);
+    setTimeout(()=>p.remove(),(dur+2.5)*1000);
+  }
+}
+
+// ════ COUNTDOWN ════
+function buildCountdowns(){
+  const now = new Date();
+  const thisYear = now.getFullYear();
+  const countdowns = [
+    {label:'下个生日（媚媚）', getNext:()=>nextDate(1,5)},
+    {label:'下个生日（嘟教授）', getNext:()=>nextDate(1,11)},
+    {label:'每月纪念日（26号）', getNext:()=>nextMonthly(26)},
+    {label:'下个情人节', getNext:()=>nextDate(2,14)},
+    {label:'下个520', getNext:()=>nextDate(5,20)},
+    {label:'下个周年纪念（5.26）', getNext:()=>nextDate(5,26)},
+    {label:'下个圣诞节', getNext:()=>nextDate(12,25)},
+    {label:'下个元旦', getNext:()=>nextDate(1,1,true)},
+  ];
+  const grid = document.getElementById('countdownGrid');
+  grid.innerHTML='';
+  countdowns.forEach(c=>{
+    const next = c.getNext();
+    const diff = Math.ceil((next-now)/86400000);
+    const card = document.createElement('div');
+    card.className='countdown-card'+(diff<=7?' highlight':'');
+    card.innerHTML=`<div class="countdown-num">${diff===0?'今天':diff}</div><div class="countdown-label">${diff===0?'🎉 就是今天':'天后'}<br>${c.label}</div>`;
+    grid.appendChild(card);
+  });
+}
+function nextDate(m,d,forceNext=false){
+  const now=new Date(); const y=now.getFullYear();
+  let t=new Date(y,m-1,d);
+  if(t<=now||forceNext) t=new Date(y+1,m-1,d);
+  return t;
+}
+function nextMonthly(day){
+  const now=new Date(); let t=new Date(now.getFullYear(),now.getMonth(),day);
+  if(t<=now) t=new Date(now.getFullYear(),now.getMonth()+1,day);
+  return t;
+}
+
+// ════ DAYS COUNTER ════
+function animateCount(el,target,dur){
+  const start=performance.now();
   function step(now){
-    const p = Math.min((now - start) / duration, 1);
-    const ease = 1 - Math.pow(1 - p, 3);
-    el.textContent = Math.round(from + (target - from) * ease);
-    if(p < 1) requestAnimationFrame(step);
-    else { el.textContent = target; el.classList.add('bump'); setTimeout(()=>el.classList.remove('bump'),300); }
+    const p=Math.min((now-start)/dur,1);
+    const ease=1-Math.pow(1-p,3);
+    el.textContent=Math.round(target*ease);
+    if(p<1) requestAnimationFrame(step);
+    else{el.textContent=target;el.classList.add('bump');setTimeout(()=>el.classList.remove('bump'),300);}
   }
   requestAnimationFrame(step);
 }
-function calcDays(dateStr){
-  const d=new Date(dateStr), now=new Date();
-  now.setHours(0,0,0,0); d.setHours(0,0,0,0);
-  return Math.max(0, Math.floor((now-d)/86400000));
+function calcDays(s){
+  const d=new Date(s),now=new Date();
+  now.setHours(0,0,0,0);d.setHours(0,0,0,0);
+  return Math.max(0,Math.floor((now-d)/86400000));
 }
-// delay to let page settle before animating
 setTimeout(()=>{
-  animateCount(document.getElementById('daysKnow'), calcDays('2024-01-25'), 1400);
-  setTimeout(()=>animateCount(document.getElementById('daysTogether'), calcDays('2025-05-26'), 1200), 200);
-}, 900);
+  animateCount(document.getElementById('daysKnow'),calcDays('2024-01-25'),1400);
+  setTimeout(()=>animateCount(document.getElementById('daysTogether'),calcDays('2025-05-26'),1200),200);
+},600);
 setInterval(()=>{
-  document.getElementById('daysKnow').textContent = calcDays('2024-01-25');
-  document.getElementById('daysTogether').textContent = calcDays('2025-05-26');
-}, 60000);
+  document.getElementById('daysKnow').textContent=calcDays('2024-01-25');
+  document.getElementById('daysTogether').textContent=calcDays('2025-05-26');
+},60000);
 
-// ── WEATHER (Open-Meteo，无需key，国内可用) ──
-const WMO_ICON = {
-  0:'☀️',1:'🌤️',2:'⛅',3:'☁️',45:'🌫️',48:'🌫️',
-  51:'🌦️',53:'🌦️',55:'🌧️',61:'🌧️',63:'🌧️',65:'🌧️',
-  71:'❄️',73:'❄️',75:'❄️',77:'🌨️',80:'🌦️',81:'🌧️',82:'⛈️',
-  85:'🌨️',86:'🌨️',95:'⛈️',96:'⛈️',99:'⛈️'
-};
-const WMO_TEXT = {
-  0:'晴天',1:'晴间多云',2:'多云',3:'阴天',45:'雾',48:'雾凇',
-  51:'小毛毛雨',53:'毛毛雨',55:'大毛毛雨',61:'小雨',63:'中雨',65:'大雨',
-  71:'小雪',73:'中雪',75:'大雪',77:'雪粒',80:'阵雨',81:'中阵雨',82:'大阵雨',
-  85:'阵雪',86:'大阵雪',95:'雷雨',96:'雷雨夹冰雹',99:'强雷雨'
-};
-
+// ════ WEATHER ════
+const WMO_ICON={0:'☀️',1:'🌤️',2:'⛅',3:'☁️',45:'🌫️',48:'🌫️',51:'🌦️',53:'🌦️',55:'🌧️',61:'🌧️',63:'🌧️',65:'🌧️',71:'❄️',73:'❄️',75:'❄️',77:'🌨️',80:'🌦️',81:'🌧️',82:'⛈️',85:'🌨️',86:'🌨️',95:'⛈️',96:'⛈️',99:'⛈️'};
+const WMO_TEXT={0:'晴天',1:'晴间多云',2:'多云',3:'阴天',45:'雾',48:'雾凇',51:'小毛毛雨',53:'毛毛雨',55:'大毛毛雨',61:'小雨',63:'中雨',65:'大雨',71:'小雪',73:'中雪',75:'大雪',77:'雪粒',80:'阵雨',81:'中阵雨',82:'大阵雨',85:'阵雪',86:'大阵雪',95:'雷雨',96:'雷雨夹冰雹',99:'强雷雨'};
 function initWeather(){
   setWeather('🌤️','获取中…','',null,null);
   if(navigator.geolocation){
     navigator.geolocation.getCurrentPosition(
-      pos => fetchWeather(pos.coords.latitude, pos.coords.longitude, null),
-      ()  => fetchWeatherByIP(),
-      {timeout:8000, maximumAge:600000, enableHighAccuracy:false}
+      pos=>fetchWeather(pos.coords.latitude,pos.coords.longitude,null),
+      ()=>fetchWeather(39.9042,116.4074,'北京'),
+      {timeout:8000,maximumAge:600000,enableHighAccuracy:false}
     );
-  } else {
-    fetchWeatherByIP();
-  }
+  } else fetchWeather(39.9042,116.4074,'北京');
 }
-
-async function fetchWeatherByIP(){
-  setWeather('🌤️','请允许定位权限','以显示实时天气',null,null);
-}
-
-async function fetchWeather(lat, lon, cityName){
+async function fetchWeather(lat,lon,cityName){
   try{
-    let locStr = cityName || '';
+    let locStr=cityName||'';
     if(!locStr){
       try{
-        const amapRes = await fetch(`https://restapi.amap.com/v3/geocode/regeo?location=${lon},${lat}&key=6fe2eca2e56e68fbc996e84dd50c22fa&radius=1000&extensions=base&output=json`);
-        const amapData = await amapRes.json();
-        if(amapData.status==='1' && amapData.regeocode){
-          const addr = amapData.regeocode.addressComponent;
-          const district = addr.district||'';
-          const city = addr.city||addr.province||'';
-          locStr = district ? district : city;
-        }
-      }catch(e){ locStr = '当前位置'; }
+        const r=await fetch(`https://restapi.amap.com/v3/geocode/regeo?location=${lon},${lat}&key=6fe2eca2e56e68fbc996e84dd50c22fa&radius=1000&extensions=base&output=json`);
+        const d=await r.json();
+        if(d.status==='1'&&d.regeocode){const a=d.regeocode.addressComponent;locStr=(a.district||a.city||a.province||'');}
+      }catch(e){locStr='';}
     }
-    const wRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&timezone=auto`);
-    const wData = await wRes.json();
-    const cw = wData.current_weather;
-    const code = cw.weathercode;
-    const icon = WMO_ICON[code] || '🌤️';
-    const desc = WMO_TEXT[code] || '';
-    const temp = Math.round(cw.temperature);
-    setWeather(icon, locStr||'当前位置', desc, temp, code);
-  }catch(e){
-    setWeather('🌤️','北京','今天也要开心哟',23,0);
-  }
+    const w=await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&timezone=auto`);
+    const wd=await w.json();
+    const cw=wd.current_weather;
+    setWeather(WMO_ICON[cw.weathercode]||'🌡️',locStr||'当前位置',WMO_TEXT[cw.weathercode]||'',Math.round(cw.temperature),cw.weathercode);
+  }catch(e){setWeather('🌤️','北京','今天也要开心哟',23,0);}
 }
-
-function getNag(iconCode, temp){
-  const c = parseInt(iconCode);
-  if(c===82||c===95||c===96||c===99) return '⛈️ 雷雨天在室内待着，不要乱跑';
-  if(c>=80&&c<=82) return '☂️ 出门记得带伞，别把自己淋湿了';
-  if(c>=51&&c<=65) return '☂️ 出门记得带伞，别把自己淋湿了';
-  if(c>=71&&c<=77) return '❄️ 下雪啦！路上会滑，慢点走，手手要暖';
-  if(c>=85&&c<=86) return '❄️ 下雪啦！路上会滑，慢点走，手手要暖';
-  if(c===45||c===48) return '🌫️ 大雾天出行注意安全，开车慢一点';
-  if(temp === null) return '';
-  if(temp >= 35) return '🥵 太热了！多喝水，出门防晒，别中暑了';
-  if(temp >= 30) return '☀️ 天气有点热，防晒霜记得抹，多补水';
-  if(temp >= 22) return '🌸 天气不错，适合出去走走，心情也会好的';
-  if(temp >= 15) return '🧥 早晚温差有点大，出门多带一件外套';
-  if(temp >= 8)  return '🧣 天凉了，围巾帽子都备上，暖暖的出门';
-  if(temp >= 0)  return '🥶 好冷啊！多穿点，手脚一定要保暖';
+function getNag(c,t){
+  c=parseInt(c);
+  if(c===82||c===95||c===96||c===99)return '⛈️ 雷雨天在室内待着，不要乱跑';
+  if(c>=80&&c<=82||c>=51&&c<=65)return '☂️ 出门记得带伞，别把自己淋湿了';
+  if((c>=71&&c<=77)||(c>=85&&c<=86))return '❄️ 下雪啦！路上会滑，慢点走，手手要暖';
+  if(c===45||c===48)return '🌫️ 大雾天出行注意安全';
+  if(t===null)return '';
+  if(t>=35)return '🥵 太热了！多喝水，出门防晒，别中暑了';
+  if(t>=30)return '☀️ 天气有点热，防晒霜记得抹，多补水';
+  if(t>=22)return '🌸 天气不错，适合出去走走，心情也会好的';
+  if(t>=15)return '🧥 早晚温差有点大，出门多带一件外套';
+  if(t>=8) return '🧣 天凉了，围巾帽子都备上，暖暖的出门';
+  if(t>=0) return '🥶 好冷啊！多穿点，手脚一定要保暖';
   return '🌨️ 零下了，裹紧了再出门，别冻着小脑袋';
 }
-function setWeather(icon, loc, desc, temp, iconCode){
-  document.getElementById('weatherIcon').textContent = icon;
-  document.getElementById('weatherLocation').textContent = loc;
-  document.getElementById('weatherTemp').textContent = temp != null ? temp + '°C' : '';
-  document.getElementById('weatherDesc').textContent = desc;
-  document.getElementById('weatherNag').textContent = getNag(iconCode, temp);
+function setWeather(icon,loc,desc,temp,code){
+  document.getElementById('weatherIcon').textContent=icon;
+  document.getElementById('weatherLocation').textContent=loc;
+  document.getElementById('weatherTemp').textContent=temp!=null?temp+'°C':'';
+  document.getElementById('weatherDesc').textContent=desc;
+  document.getElementById('weatherNag').textContent=getNag(code,temp);
 }
 initWeather();
 
-// ── PETALS ──
+// ════ PETALS ════
 function spawnPetals(){
   const box=document.getElementById('petals');box.innerHTML='';
   const chars=['✿','❀','✾','❁','·','✦'];
-  for(let i=0;i<22;i++){
+  for(let i=0;i<18;i++){
     const p=document.createElement('div');p.className='petal';
     p.textContent=chars[Math.floor(Math.random()*chars.length)];
     const dur=2.8+Math.random()*2;
-    p.style.cssText=`left:${Math.random()*100}vw;font-size:${10+Math.random()*12}px;animation-duration:${dur}s;animation-delay:${Math.random()*1.2}s;color:hsl(${340+Math.random()*25},55%,${62+Math.random()*18}%);`;
+    p.style.cssText=`left:${Math.random()*100}vw;font-size:${10+Math.random()*10}px;animation-duration:${dur}s;animation-delay:${Math.random()*1.2}s;color:hsl(${340+Math.random()*25},55%,${62+Math.random()*18}%);`;
     box.appendChild(p);
     setTimeout(()=>p.remove(),(dur+1.5)*1000);
   }
 }
 
-// ── MODAL ──
+// ════ MODAL ════
 let activeModal=null;
-function openModal(id){
-  closeModal();
-  activeModal=id;
-  document.getElementById(id).classList.add('show');
-  document.getElementById('overlay').classList.add('show');
-}
-function closeModal(){
-  if(activeModal){document.getElementById(activeModal).classList.remove('show');}
-  document.getElementById('overlay').classList.remove('show');
-  activeModal=null;
-}
+function openModal(id){closeModal();activeModal=id;document.getElementById(id).classList.add('show');document.getElementById('overlay').classList.add('show');}
+function closeModal(){if(activeModal)document.getElementById(activeModal).classList.remove('show');document.getElementById('overlay').classList.remove('show');activeModal=null;}
 
-// ── PROGRESS ──
-function allWishes(){return ORIGINAL_WISHES.length + state.userWishes.length;}
-let diamondShown = false;
+// ════ PROGRESS ════
+function allWishes(){return ORIGINAL_WISHES.length+state.userWishes.length;}
+let diamondShown=false;
 function updateProgress(){
-  const n=state.done.length, total=allWishes();
+  const n=state.done.length,total=allWishes();
   document.getElementById('doneCount').textContent=n;
   document.getElementById('totalCount').textContent=total;
   document.getElementById('progressFill').style.width=Math.round(n/total*100)+'%';
   document.getElementById('badge10').classList.toggle('unlocked',n>=10);
   document.getElementById('badge20').classList.toggle('unlocked',n>=20);
-  const allDone = n>=total;
+  const allDone=n>=total;
   document.getElementById('badgeAll').classList.toggle('unlocked',allDone);
-
-  // reveal secret wish-31 when all done
-  const secret31El = document.getElementById('wish31');
-  if(secret31El){
-    if(allDone){
-      secret31El.style.opacity='0';
-      secret31El.style.display='flex';
-      setTimeout(()=>{ secret31El.style.transition='opacity 1.2s ease'; secret31El.style.opacity='1'; },50);
-    } else {
-      secret31El.style.display='none';
-    }
+  const s31=document.getElementById('wish31');
+  if(s31){
+    if(allDone){s31.style.display='flex';setTimeout(()=>{s31.style.transition='opacity 1.2s ease';s31.style.opacity='1';},50);}
+    else{s31.style.display='none';}
   }
-
-  // diamond modal: trigger after wish-31 finishes fading in
-  if(allDone && !diamondShown){
-    diamondShown = true;
-    setTimeout(()=>{ spawnPetals(); openModal('diamondModal'); }, 2000);
+  if(allDone&&!diamondShown){diamondShown=true;setTimeout(()=>{spawnPetals();openModal('diamondModal');},2000);}
+  if(!allDone)diamondShown=false;
+}
+function showMilestone(n){
+  const ms=MILESTONES[n];if(!ms)return;
+  if(state.done.length<n)return;
+  document.getElementById('rewardEmoji').textContent=ms.emoji;
+  document.getElementById('rewardText').textContent=ms.text;
+  openModal('rewardModal');
+}
+function checkMilestone(n){
+  const ms=MILESTONES[n];
+  if(ms&&!state.shownMilestones.includes(n)){
+    state.shownMilestones.push(n);save();
+    setTimeout(()=>{document.getElementById('rewardEmoji').textContent=ms.emoji;document.getElementById('rewardText').textContent=ms.text;spawnPetals();openModal('rewardModal');},1200);
   }
-  if(!allDone){ diamondShown = false; }
 }
 
-// ── CAPSULES ──
+// ════ CAPSULES ════
 function renderCapsules(){
   const c=document.getElementById('capsulesContainer');c.innerHTML='';
   CAPSULES.forEach((cap,i)=>{
     const opened=state.capsuleOpened[i];
     const div=document.createElement('div');
     div.className='capsule-item'+(opened?' unlocked':'');
-    div.innerHTML=`
-      <div class="capsule-envelope">${opened?'💌':'🔒'}</div>
-      <div class="capsule-info">
-        <div class="capsule-trigger">${cap.label}</div>
-        <div class="capsule-status">${opened?'✦ 点击阅读':'尚未解锁'}</div>
-      </div>`;
-    if(opened) div.addEventListener('click',()=>showCapsule(i));
+    div.innerHTML=`<div class="capsule-envelope">${opened?'💌':'🔒'}</div><div class="capsule-info"><div class="capsule-trigger">${cap.label}</div><div class="capsule-status">${opened?'✦ 点击阅读':'尚未解锁'}</div></div>`;
+    if(opened)div.addEventListener('click',()=>{document.getElementById('capTitle').textContent=cap.title;document.getElementById('capContent').textContent=cap.content;openModal('capsuleModal');});
     c.appendChild(div);
   });
 }
-function showCapsule(i){
-  const cap=CAPSULES[i];
-  document.getElementById('capTitle').textContent=cap.title;
-  document.getElementById('capContent').textContent=cap.content;
-  openModal('capsuleModal');
-}
-function checkCapsules(wishIdx){
+function checkCapsules(idx){
   CAPSULES.forEach((cap,i)=>{
-    if(!state.capsuleOpened[i] && wishIdx===cap.trigger){
-      state.capsuleOpened[i]=true;save();
-      renderCapsules();
-      setTimeout(()=>{spawnPetals();showCapsule(i);},800);
+    if(!state.capsuleOpened[i]&&idx===cap.trigger){
+      state.capsuleOpened[i]=true;save();renderCapsules();
+      setTimeout(()=>{spawnPetals();document.getElementById('capTitle').textContent=cap.title;document.getElementById('capContent').textContent=cap.content;openModal('capsuleModal');},800);
     }
   });
 }
 
-// ── WISH LIST ──
+// ════ WISH LIST ════
 function buildWishes(){
   const base=ORIGINAL_WISHES.map((w,i)=>({...w,origIdx:i}));
   const user=state.userWishes.map((w,i)=>({text:w,userIdx:i,origIdx:ORIGINAL_WISHES.length+i}));
-  const secret31=[{...WISH_31,origIdx:-1,isSecret31:true}];
-  // secret31 always last, user wishes after base (30 items), so numbering: 1-30 base, 32+ user
-  return [...base,...user,...secret31];
+  return [...base,...user,{...WISH_31,origIdx:-1,isSecret31:true}];
+}
+let currentFilter='all',currentSearch='';
+function setFilter(f,el){currentFilter=f;document.querySelectorAll('.filter-tag').forEach(t=>t.classList.remove('active'));el.classList.add('active');applyFilter();}
+function filterWishes(){currentSearch=document.getElementById('searchInput').value.trim().toLowerCase();applyFilter();}
+function applyFilter(){
+  document.querySelectorAll('#wishList .wish-item').forEach(li=>{
+    if(li.id==='wish31')return;
+    const text=li.querySelector('.wish-text')?.textContent.toLowerCase()||'';
+    const isDone=li.classList.contains('done');
+    const ms=!currentSearch||text.includes(currentSearch);
+    const mf=currentFilter==='all'||(currentFilter==='done'&&isDone)||(currentFilter==='undone'&&!isDone);
+    li.style.display=(ms&&mf)?'':'none';
+  });
 }
 
 function renderList(){
   const list=document.getElementById('wishList');list.innerHTML='';
   const wishes=buildWishes();
-  // displayNum: base items are 1-30, user items start at 32, secret31 is always "31"
-  let baseCount=0, userCount=0;
-  wishes.forEach((w)=>{
+  let baseCount=0,userCount=0;
+  wishes.forEach(w=>{
     const idx=w.origIdx;
     const isDone=state.done.includes(idx);
     const li=document.createElement('li');
     li.className='wish-item'+(w.special?' special':'')+(isDone?' done':'')+(w.userIdx!=null?' user-added':'');
-
-    if(w.isSecret31){
-      li.id='wish31';
-      li.style.display='none';
-      li.style.opacity='0';
-      li.style.animationDelay='0s';
-    } else if(w.userIdx!=null){
-      userCount++;
-      li.style.animationDelay=(1.0+(30+userCount)*0.04)+'s';
-    } else {
-      baseCount++;
-      li.style.animationDelay=(1.0+baseCount*0.04)+'s';
-    }
-
-    // numbering: base=1~30, secret31=31, user=32+
-    let numStr;
-    if(w.isSecret31) numStr='31';
-    else if(w.userIdx!=null) numStr=String(31+userCount).padStart(2,'0');
-    else numStr=String(baseCount).padStart(2,'0');
-
-    const tagHtml = w.pretagDone
-      ? `<span class="wish-tag">${w.pretagDone}</span>`
-      : (w.tag && isDone ? `<span class="wish-tag">${w.tag}</span>` : '');
-
-    // show completion history
-    const histKey = idx;
-    const histArr = state.history && state.history[histKey];
-    let histHtml = '';
-    if(histArr && histArr.length > 0){
-      const entries = histArr.map(h => {
-        const date = typeof h === 'string' ? h : h.date;
-        const text = typeof h === 'object' ? h.text : '';
-        const loc  = typeof h === 'object' ? h.loc  : '';
-        return `<div class="memory-entry">
-          <span class="memory-entry-date">${date}</span>
-          ${loc ? `<span class="memory-entry-loc">📍${loc}</span>` : ''}
-          ${text ? `<span class="memory-entry-text">${text}</span>` : ''}
-        </div>`;
+    if(w.isSecret31){li.id='wish31';li.style.display='none';li.style.opacity='0';}
+    else if(w.userIdx!=null) userCount++;
+    else baseCount++;
+    const numStr=w.isSecret31?'31':w.userIdx!=null?String(31+userCount).padStart(2,'0'):String(baseCount).padStart(2,'0');
+    const tagHtml=w.pretagDone?`<span class="wish-tag">${w.pretagDone}</span>`:(w.tag&&isDone?`<span class="wish-tag">${w.tag}</span>`:'');
+    const histArr=state.history&&state.history[idx];
+    let histHtml='';
+    if(histArr&&histArr.length>0){
+      const entries=histArr.map(h=>{
+        const date=typeof h==='string'?h:h.date;
+        const text=typeof h==='object'?h.text:'';
+        const loc=typeof h==='object'?h.loc:'';
+        return `<div class="memory-entry"><span class="memory-entry-date">${date}</span>${loc?`<span class="memory-entry-loc">📍${loc}</span>`:''} ${text?`<span class="memory-entry-text">${text}</span>`:''}</div>`;
       }).join('');
-      histHtml = `<div class="memory-entries">
-        <div class="wish-history"><span class="wish-history-count">✓ ${histArr.length}次</span></div>
-        ${entries}
-      </div>`;
+      histHtml=`<div class="memory-entries"><div style="margin-bottom:2px"><span class="wish-history-count">✓ ${histArr.length}次</span></div>${entries}</div>`;
     }
-
-    // all wishes can be edited, user wishes also have delete, done wishes have undo
-    const editBtn = `<button class="wish-action-btn" onclick="editWishItem(${idx},'${w.userIdx!=null?'user':'base'}',${w.userIdx!=null?w.userIdx:-1},event)" title="编辑">✎</button>`;
-    const deleteBtn = w.userIdx!=null ? `<button class="wish-action-btn" onclick="deleteWish(${w.userIdx},event)" title="删除">×</button>` : '';
-    const undoBtn = isDone ? `<button class="wish-action-btn" onclick="undoWish(${idx},event)" title="取消完成" style="font-size:10px;">撤</button>` : '';
-    const actionBtns = !w.isSecret31 ? `<div class="wish-actions">${undoBtn}${editBtn}${deleteBtn}</div>` : '';
-
-    li.innerHTML=`
-      <div class="checkbox"></div>
-      <span class="wish-num">${numStr}</span>
-      <div style="flex:1">
-        <div class="wish-text">${w.text}</div>
-        ${tagHtml}${histHtml}
-      </div>
-      ${actionBtns}`;
-
-    if(!w.special && !w.isSecret31){
-      li.addEventListener('click',(e)=>{
-        if(e.target.classList.contains('wish-action-btn')) return;
-        if(!state.done.includes(idx)) state.done.push(idx);
+    const undoBtn=isDone?`<button class="wish-action-btn" onclick="undoWish(${idx},event)" title="撤销" style="font-size:9px;">撤</button>`:'';
+    const editBtn=`<button class="wish-action-btn" onclick="editWishItem(${idx},'${w.userIdx!=null?'user':'base'}',${w.userIdx!=null?w.userIdx:-1},event)" title="编辑">✎</button>`;
+    const delBtn=w.userIdx!=null?`<button class="wish-action-btn" onclick="deleteWish(${w.userIdx},event)" title="删除">×</button>`:'';
+    const actions=!w.isSecret31?`<div class="wish-actions">${undoBtn}${editBtn}${delBtn}</div>`:'';
+    li.innerHTML=`<div class="checkbox"></div><span class="wish-num">${numStr}</span><div style="flex:1"><div class="wish-text">${w.text}</div>${tagHtml}${histHtml}</div>${actions}`;
+    if(!w.special&&!w.isSecret31){
+      li.addEventListener('click',e=>{
+        if(e.target.classList.contains('wish-action-btn'))return;
+        if(!state.done.includes(idx))state.done.push(idx);
         li.classList.add('done');
-        if(!state.history[idx]) state.history[idx]=[];
-        // record basic entry first, memory modal will enrich it
-        const entryIdx = state.history[idx].length;
-        state.history[idx].push({date: new Date().toLocaleDateString('zh-CN'), text:'', loc:''});
-        checkCapsules(idx);
-        save(); renderList(); updateProgress();
-
-        // show celebration/reward first, then memory modal
+        if(!state.history[idx])state.history[idx]=[];
+        const entryIdx=state.history[idx].length;
+        state.history[idx].push({date:new Date().toLocaleDateString('zh-CN'),text:'',loc:''});
+        checkCapsules(idx);save();renderList();updateProgress();
         if(WISH_REWARDS[idx]){
-          const r = WISH_REWARDS[idx];
-          document.getElementById('rewardEmoji').textContent = r.emoji;
-          document.getElementById('rewardText').textContent = r.text;
+          const r=WISH_REWARDS[idx];
+          document.getElementById('rewardEmoji').textContent=r.emoji;
+          document.getElementById('rewardText').textContent=r.text;
           spawnPetals();
-          setTimeout(()=>{
-            openModal('rewardModal');
-            setTimeout(()=>openMemoryModal(idx, entryIdx, w.text), 2000);
-          }, 400);
+          setTimeout(()=>{openModal('rewardModal');setTimeout(()=>openMemoryModal(idx,entryIdx,w.text),2000);},400);
         } else {
           const qi=idx>=0&&idx<QUOTES.length?idx:Math.floor(Math.random()*QUOTES.length);
           const q=QUOTES[qi];
           document.getElementById('celebWish').textContent=q.w;
           document.getElementById('celebQuote').textContent=q.q;
           document.getElementById('celebSource').textContent=q.s;
-          spawnPetals();
-          openModal('celebModal');
-          setTimeout(()=>openMemoryModal(idx, entryIdx, w.text), 2200);
+          spawnPetals();openModal('celebModal');
+          setTimeout(()=>openMemoryModal(idx,entryIdx,w.text),2200);
         }
         checkMilestone(state.done.length);
       });
@@ -984,330 +1070,300 @@ function renderList(){
   updateProgress();
 }
 
-// ── MEMORY MODAL ──
-let memoryCurrentIdx = null;
-let memoryEntryIdx = null;
-
-function openMemoryModal(wishIdx, entryIdx, wishText){
-  memoryCurrentIdx = wishIdx;
-  memoryEntryIdx = entryIdx;
-  document.getElementById('memoryWishTitle').textContent = '「' + wishText + '」';
-  document.getElementById('memoryInput').value = '';
-  document.getElementById('memoryCharCount').textContent = '0';
-  document.getElementById('memoryLocation').textContent = '📍 获取位置中…';
-  document.getElementById('memoryLocation').className = 'memory-location loading';
-  closeModal();
-  setTimeout(()=>openModal('memoryModal'), 300);
-  // get location
-  getLocationForMemory();
-}
-
-function getLocationForMemory(){
-  if(!navigator.geolocation){
-    document.getElementById('memoryLocation').textContent = '📍 无法获取位置';
-    document.getElementById('memoryLocation').className = 'memory-location';
-    return;
-  }
-  navigator.geolocation.getCurrentPosition(
-    async pos => {
+// ════ MEMORY MODAL ════
+let memCurrentIdx=null,memEntryIdx=null;
+function openMemoryModal(wishIdx,entryIdx,wishText){
+  memCurrentIdx=wishIdx;memEntryIdx=entryIdx;
+  document.getElementById('memoryWishTitle').textContent='「'+wishText+'」';
+  document.getElementById('memoryInput').value='';
+  document.getElementById('memoryCharCount').textContent='0';
+  const locEl=document.getElementById('memoryLocation');
+  locEl.textContent='📍 获取位置中…';locEl.className='memory-location loading';
+  locEl.dataset.loc='';
+  closeModal();setTimeout(()=>openModal('memoryModal'),300);
+  if(navigator.geolocation){
+    navigator.geolocation.getCurrentPosition(async pos=>{
       try{
-        const {latitude:lat, longitude:lon} = pos.coords;
-        const res = await fetch(`https://restapi.amap.com/v3/geocode/regeo?location=${lon},${lat}&key=6fe2eca2e56e68fbc996e84dd50c22fa&radius=500&extensions=base&output=json`);
-        const data = await res.json();
-        let locStr = '';
-        if(data.status==='1' && data.regeocode){
-          const addr = data.regeocode.addressComponent;
-          const district = addr.district||'';
-          const street = addr.streetNumber&&addr.streetNumber.street ? addr.streetNumber.street : '';
-          const city = addr.city||addr.province||'';
-          locStr = [city, district, street].filter(Boolean).join(' · ');
-        }
-        const el = document.getElementById('memoryLocation');
-        el.textContent = locStr ? '📍 ' + locStr : '📍 位置已获取';
-        el.className = 'memory-location';
-        el.dataset.loc = locStr;
-      }catch(e){
-        document.getElementById('memoryLocation').textContent = '📍 位置获取失败';
-        document.getElementById('memoryLocation').className = 'memory-location';
-      }
-    },
-    ()=>{
-      document.getElementById('memoryLocation').textContent = '📍 未允许定位';
-      document.getElementById('memoryLocation').className = 'memory-location';
-    },
-    {timeout:8000, enableHighAccuracy:false}
-  );
+        const r=await fetch(`https://restapi.amap.com/v3/geocode/regeo?location=${pos.coords.longitude},${pos.coords.latitude}&key=6fe2eca2e56e68fbc996e84dd50c22fa&radius=500&output=json`);
+        const d=await r.json();
+        let loc='';
+        if(d.status==='1'&&d.regeocode){const a=d.regeocode.addressComponent;const st=a.streetNumber&&a.streetNumber.street?a.streetNumber.street:'';loc=[a.city||a.province,a.district,st].filter(Boolean).join(' · ');}
+        locEl.textContent=loc?'📍 '+loc:'📍 位置已获取';locEl.className='memory-location';locEl.dataset.loc=loc;
+      }catch(e){locEl.textContent='📍 获取失败';locEl.className='memory-location';}
+    },()=>{locEl.textContent='📍 未允许定位';locEl.className='memory-location';},{timeout:8000});
+  } else {locEl.textContent='📍 不支持定位';locEl.className='memory-location';}
 }
-
 function saveMemory(){
-  const text = document.getElementById('memoryInput').value.trim();
-  const locEl = document.getElementById('memoryLocation');
-  const loc = locEl.dataset.loc || locEl.textContent.replace('📍 ','').trim();
-  if(state.history[memoryCurrentIdx] && state.history[memoryCurrentIdx][memoryEntryIdx]){
-    state.history[memoryCurrentIdx][memoryEntryIdx].text = text;
-    state.history[memoryCurrentIdx][memoryEntryIdx].loc = loc !== '获取位置中…' ? loc : '';
-    save(); renderList();
+  const text=document.getElementById('memoryInput').value.trim();
+  const locEl=document.getElementById('memoryLocation');
+  const loc=(locEl.dataset.loc||locEl.textContent.replace('📍 ','')).trim();
+  if(state.history[memCurrentIdx]&&state.history[memCurrentIdx][memEntryIdx]){
+    state.history[memCurrentIdx][memEntryIdx].text=text;
+    state.history[memCurrentIdx][memEntryIdx].loc=loc==='获取位置中…'||loc==='获取失败'||loc==='未允许定位'?'':loc;
+    save();renderList();
   }
   closeModal();
 }
+function skipMemory(){closeModal();}
 
-function skipMemory(){
-  closeModal();
-}
-
-function undoWish(origIdx, e){
+// ════ EDIT / DELETE / UNDO ════
+function undoWish(origIdx,e){
   e.stopPropagation();
-  state.done = state.done.filter(d => d !== origIdx);
-  if(state.history[origIdx] && state.history[origIdx].length > 0){
-    state.history[origIdx].pop();
-    if(state.history[origIdx].length === 0) delete state.history[origIdx];
-  }
-  save(); renderList();
+  state.done=state.done.filter(d=>d!==origIdx);
+  if(state.history[origIdx]&&state.history[origIdx].length>0){state.history[origIdx].pop();if(state.history[origIdx].length===0)delete state.history[origIdx];}
+  save();renderList();
 }
-
-function editWishItem(origIdx, type, userIdx, e){
+function editWishItem(origIdx,type,userIdx,e){
   e.stopPropagation();
-  let currentText;
-  if(type==='user') currentText = state.userWishes[userIdx];
-  else currentText = ORIGINAL_WISHES[origIdx].text;
-  const newText = prompt('修改愿望内容：', currentText);
-  if(!newText || !newText.trim()) return;
-  if(type==='user'){
-    state.userWishes[userIdx] = newText.trim();
-  } else {
-    ORIGINAL_WISHES[origIdx].text = newText.trim();
-  }
-  save(); renderList();
+  const cur=type==='user'?state.userWishes[userIdx]:ORIGINAL_WISHES[origIdx].text;
+  const nv=prompt('修改愿望：',cur);
+  if(nv&&nv.trim()){if(type==='user')state.userWishes[userIdx]=nv.trim();else ORIGINAL_WISHES[origIdx].text=nv.trim();save();renderList();}
 }
-
-function deleteWish(userIdx, e){
+function deleteWish(userIdx,e){
   e.stopPropagation();
-  if(!confirm('确定删除这条愿望吗？')) return;
-  const origIdx = ORIGINAL_WISHES.length + userIdx;
-  state.done = state.done.filter(d => d !== origIdx);
-  state.done = state.done.map(d => d > origIdx ? d-1 : d);
-  state.userWishes.splice(userIdx, 1);
-  save(); renderList();
+  if(!confirm('确定删除这条愿望吗？'))return;
+  const origIdx=ORIGINAL_WISHES.length+userIdx;
+  state.done=state.done.filter(d=>d!==origIdx).map(d=>d>origIdx?d-1:d);
+  state.userWishes.splice(userIdx,1);save();renderList();
 }
 
-function showMilestone(n){
-  const ms = MILESTONES[n];
-  if(!ms) return;
-  const unlocked = state.done.length >= n;
-  if(!unlocked){ return; }
-  document.getElementById('rewardEmoji').textContent = ms.emoji;
-  document.getElementById('rewardText').textContent = ms.text;
-  openModal('rewardModal');
-}
-
-function checkMilestone(n){
-  const ms = MILESTONES[n];
-  if(ms && !state.shownMilestones.includes(n)){
-    state.shownMilestones.push(n);
-    save();
-    setTimeout(()=>{
-      document.getElementById('rewardEmoji').textContent = ms.emoji;
-      document.getElementById('rewardText').textContent = ms.text;
-      spawnPetals(); openModal('rewardModal');
-    }, 1200);
-  }
-}
-
-// ── SEARCH & FILTER ──
-let currentFilter = 'all';
-let currentSearch = '';
-
-function setFilter(f, el){
-  currentFilter = f;
-  document.querySelectorAll('.filter-tag').forEach(t=>t.classList.remove('active'));
-  el.classList.add('active');
-  applyFilter();
-}
-
-function filterWishes(){
-  currentSearch = document.getElementById('searchInput').value.trim().toLowerCase();
-  applyFilter();
-}
-
-function applyFilter(){
-  document.querySelectorAll('#wishList .wish-item').forEach(li=>{
-    if(li.id==='wish31'){ return; }
-    const text = li.querySelector('.wish-text')?.textContent.toLowerCase()||'';
-    const isDone = li.classList.contains('done');
-    const matchSearch = !currentSearch || text.includes(currentSearch);
-    const matchFilter = currentFilter==='all' ||
-      (currentFilter==='done' && isDone) ||
-      (currentFilter==='undone' && !isDone);
-    li.style.display = (matchSearch && matchFilter) ? '' : 'none';
-  });
-}
-
-// ── ADD WISH ──
-function toggleAddForm(){
-  const f=document.getElementById('addWishForm');
-  f.classList.toggle('open');
-  if(f.classList.contains('open')) document.getElementById('addWishInput').focus();
-}
+// ════ ADD WISH ════
+function toggleAddForm(){const f=document.getElementById('addWishForm');f.classList.toggle('open');if(f.classList.contains('open'))document.getElementById('addWishInput').focus();}
 function submitWish(){
-  const inp=document.getElementById('addWishInput');
-  const val=inp.value.trim();
-  if(!val) return;
-  state.userWishes.push(val);
-  save();inp.value='';
-  document.getElementById('addWishForm').classList.remove('open');
-  renderList();
+  const inp=document.getElementById('addWishInput');const val=inp.value.trim();
+  if(!val)return;state.userWishes.push(val);save();inp.value='';document.getElementById('addWishForm').classList.remove('open');renderList();
 }
 document.getElementById('addWishInput').addEventListener('keydown',e=>{if(e.key==='Enter')submitWish();});
 
-// ── SEAL CLICKS (secret capsule after 3 clicks) ──
+// ════ SUPABASE ════
+const SB_URL = 'https://jozhipoulabghatuuqs.supabase.co';
+const SB_KEY = 'sb_publishable_g1KTJxi5-P-d4JUSAnw9xQ_yDrqH0l0';
+const sbHeaders = {'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY};
+
+async function sbGet(table, order='created_at', limit=50){
+  try{
+    const r = await fetch(`${SB_URL}/rest/v1/${table}?order=${order}.desc&limit=${limit}`, {headers:sbHeaders});
+    return await r.json();
+  }catch(e){return [];}
+}
+async function sbInsert(table, data){
+  try{
+    const r = await fetch(`${SB_URL}/rest/v1/${table}`, {method:'POST',headers:{...sbHeaders,'Prefer':'return=representation'},body:JSON.stringify(data)});
+    return await r.json();
+  }catch(e){return null;}
+}
+async function sbDelete(table, id){
+  try{
+    await fetch(`${SB_URL}/rest/v1/${table}?id=eq.${id}`, {method:'DELETE',headers:sbHeaders});
+  }catch(e){}
+}
+async function sbUpsert(table, data){
+  try{
+    await fetch(`${SB_URL}/rest/v1/${table}`, {method:'POST',headers:{...sbHeaders,'Prefer':'resolution=merge-duplicates'},body:JSON.stringify(data)});
+  }catch(e){}
+}
+async function sbGetOne(table, id){
+  try{
+    const r = await fetch(`${SB_URL}/rest/v1/${table}?id=eq.${id}`, {headers:sbHeaders});
+    const d = await r.json();
+    return d&&d[0]?d[0]:null;
+  }catch(e){return null;}
+}
+
+// ════ MESSAGES (cloud) ════
+let currentWho='him';
+function selectWho(who){
+  currentWho=who;
+  document.getElementById('btnHim').classList.toggle('active',who==='him');
+  document.getElementById('btnHer').classList.toggle('active',who==='her');
+}
+async function sendMsg(){
+  const inp=document.getElementById('msgInput');const val=inp.value.trim();
+  if(!val)return;
+  const btn=inp.nextElementSibling;
+  btn.disabled=true;btn.textContent='发送中…';
+  const date=new Date().toLocaleString('zh-CN',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'});
+  await sbInsert('messages',{who:currentWho,text:val,date});
+  inp.value='';btn.disabled=false;btn.textContent='发送';
+  await loadMessages();
+}
+async function loadMessages(){
+  const list=document.getElementById('msgList');
+  list.innerHTML='<div style="text-align:center;font-size:11px;color:var(--ink-faint);padding:12px;letter-spacing:0.1em;">加载中…</div>';
+  const msgs=await sbGet('messages','created_at',50);
+  list.innerHTML='';
+  if(!msgs||msgs.length===0){
+    list.innerHTML='<div style="text-align:center;font-size:11px;color:var(--ink-faint);padding:20px;letter-spacing:0.1em;">还没有留言，写第一条吧~</div>';
+    return;
+  }
+  msgs.forEach(m=>{
+    const div=document.createElement('div');
+    div.className='msg-item from-'+(m.who==='him'?'him':'her');
+    div.innerHTML=`<div class="msg-meta"><span class="msg-author">${m.who==='him'?'嘟教授说':'媚媚说'}</span><div style="display:flex;align-items:center;gap:6px;"><span class="msg-date">${m.date}</span><button class="msg-delete" onclick="deleteMsg(${m.id})">×</button></div></div><div class="msg-text">${m.text}</div>`;
+    list.appendChild(div);
+  });
+}
+async function deleteMsg(id){
+  if(!confirm('确定删除这条留言？'))return;
+  await sbDelete('messages',id);
+  await loadMessages();
+}
+
+// ════ SHARED STATE (together/him wishes synced) ════
+async function loadSharedWishes(){
+  const row = await sbGetOne('shared_state','wishes');
+  if(row&&row.data){
+    if(row.data.togetherWishes) state.togetherWishes=row.data.togetherWishes;
+    if(row.data.himWishes) state.himWishes=row.data.himWishes;
+    save();
+  }
+  renderSimpleList('togetherList',state.togetherWishes,'together');
+  renderSimpleList('himList',state.himWishes,'him');
+}
+async function saveSharedWishes(){
+  await sbUpsert('shared_state',{id:'wishes',data:{togetherWishes:state.togetherWishes,himWishes:state.himWishes},updated_at:new Date().toISOString()});
+}
+
+// override submitTogether and submitHim to also sync
+async function submitTogether(){
+  const inp=document.getElementById('addTogetherInput');const val=inp.value.trim();
+  if(!val)return;state.togetherWishes.push(val);save();
+  inp.value='';document.getElementById('addTogetherForm').classList.remove('open');
+  renderSimpleList('togetherList',state.togetherWishes,'together');
+  await saveSharedWishes();
+}
+async function submitHim(){
+  const inp=document.getElementById('addHimInput');const val=inp.value.trim();
+  if(!val)return;state.himWishes.push(val);save();
+  inp.value='';document.getElementById('addHimForm').classList.remove('open');
+  renderSimpleList('himList',state.himWishes,'him');
+  await saveSharedWishes();
+}
+async function editSimple(prefix,i,e){
+  e.stopPropagation();
+  const arr=prefix==='together'?state.togetherWishes:state.himWishes;
+  const nv=prompt('修改：',arr[i]);
+  if(nv&&nv.trim()){
+    arr[i]=nv.trim();save();
+    renderSimpleList(prefix==='together'?'togetherList':'himList',arr,prefix);
+    await saveSharedWishes();
+  }
+}
+async function deleteSimple(prefix,i,e){
+  e.stopPropagation();
+  const arr=prefix==='together'?state.togetherWishes:state.himWishes;
+  if(!confirm('确定删除？'))return;
+  arr.splice(i,1);save();
+  renderSimpleList(prefix==='together'?'togetherList':'himList',arr,prefix);
+  await saveSharedWishes();
+}
+
+// ════ TOGETHER / HIM WISHES ════
+function renderSimpleList(listId,wishes,prefix){
+  const list=document.getElementById(listId);list.innerHTML='';
+  wishes.forEach((w,i)=>{
+    const li=document.createElement('li');li.className='wish-item';
+    li.innerHTML=`<div class="checkbox" style="margin-top:3px;"></div><span class="wish-num">${String(i+1).padStart(2,'0')}</span><div style="flex:1"><div class="wish-text">${w}</div></div><div class="wish-actions"><button class="wish-action-btn" onclick="editSimple('${prefix}',${i},event)">✎</button><button class="wish-action-btn" onclick="deleteSimple('${prefix}',${i},event)">×</button></div>`;
+    list.appendChild(li);
+  });
+}
+function toggleAddForm2(){const f=document.getElementById('addTogetherForm');f.classList.toggle('open');if(f.classList.contains('open'))document.getElementById('addTogetherInput').focus();}
+function submitTogether(){
+  const inp=document.getElementById('addTogetherInput');const val=inp.value.trim();
+  if(!val)return;state.togetherWishes.push(val);save();inp.value='';document.getElementById('addTogetherForm').classList.remove('open');renderSimpleList('togetherList',state.togetherWishes,'together');
+}
+function toggleAddForm3(){const f=document.getElementById('addHimForm');f.classList.toggle('open');if(f.classList.contains('open'))document.getElementById('addHimInput').focus();}
+function submitHim(){
+  const inp=document.getElementById('addHimInput');const val=inp.value.trim();
+  if(!val)return;state.himWishes.push(val);save();inp.value='';document.getElementById('addHimForm').classList.remove('open');renderSimpleList('himList',state.himWishes,'him');
+}
+function editSimple(prefix,i,e){
+  e.stopPropagation();
+  const arr=prefix==='together'?state.togetherWishes:state.himWishes;
+  const nv=prompt('修改：',arr[i]);if(nv&&nv.trim()){arr[i]=nv.trim();save();renderSimpleList(prefix==='together'?'togetherList':'himList',arr,prefix);}
+}
+function deleteSimple(prefix,i,e){
+  e.stopPropagation();
+  const arr=prefix==='together'?state.togetherWishes:state.himWishes;
+  if(!confirm('确定删除？'))return;arr.splice(i,1);save();renderSimpleList(prefix==='together'?'togetherList':'himList',arr,prefix);
+}
+document.getElementById('addTogetherInput').addEventListener('keydown',e=>{if(e.key==='Enter')submitTogether();});
+document.getElementById('addHimInput').addEventListener('keydown',e=>{if(e.key==='Enter')submitHim();});
+
+// ════ MUYU ════
+let muyuCount=parseInt(localStorage.getItem('muyu_count')||'0');
+function updateMuyuCount(){const el=document.getElementById('pokeCount');if(muyuCount>0)el.textContent=`已敲了 ${muyuCount} 下`;}
+updateMuyuCount();
+function onPokeClick(){
+  const ripple=document.getElementById('pokeRipple');ripple.classList.remove('go');void ripple.offsetWidth;ripple.classList.add('go');
+  const wrap=document.getElementById('pokeHeartWrap');wrap.classList.remove('poked');void wrap.offsetWidth;wrap.classList.add('poked');
+  const merit=document.getElementById('meritFloat');merit.classList.remove('go');void merit.offsetWidth;merit.classList.add('go');
+  muyuCount++;localStorage.setItem('muyu_count',muyuCount);updateMuyuCount();
+  setTimeout(()=>{
+    document.getElementById('pokeModalInner').style.display='';
+    document.getElementById('pokeSuccessInner').style.display='none';
+    document.getElementById('pokeMoodInput').value='';
+    document.getElementById('pokeCharNum').textContent='0';
+    document.getElementById('pokeSendBtn').disabled=false;
+    document.getElementById('pokeSendBtn').textContent='敲他一下 🪘';
+    openModal('pokeModal');
+  },380);
+}
+function closePokeModal(){closeModal();}
+function updateCharCount(){document.getElementById('pokeCharNum').textContent=document.getElementById('pokeMoodInput').value.length;}
+
+// ════ EMAILJS ════
+const EMAILJS_PUBLIC_KEY='9yMhCEYhHu5bOqG0p';
+const EMAILJS_SERVICE_ID='service_xwyxdsw';
+const EMAILJS_TEMPLATE_ID='template_shugrgp';
+(function(){
+  window.addEventListener('load',()=>{if(typeof emailjs!=='undefined')emailjs.init({publicKey:EMAILJS_PUBLIC_KEY});});
+})();
+function getNow(){const now=new Date();const pad=n=>String(n).padStart(2,'0');return `${now.getFullYear()}.${pad(now.getMonth()+1)}.${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`;}
+async function sendPoke(){
+  const btn=document.getElementById('pokeSendBtn');
+  const mood=document.getElementById('pokeMoodInput').value.trim();
+  const timeStr=getNow();
+  btn.disabled=true;btn.textContent='发送中…';
+  const params={to_email:'zhuyuedong@student.usm.my',from_name:'媚媚',send_time:timeStr,mood:mood||'（没有留言，只是轻轻敲了你一下）',weather_loc:document.getElementById('weatherLocation').textContent||'',weather_now:document.getElementById('weatherTemp').textContent+' '+document.getElementById('weatherDesc').textContent,message:`时间：${timeStr}\n位置天气：${document.getElementById('weatherLocation').textContent} ${document.getElementById('weatherTemp').textContent} ${document.getElementById('weatherDesc').textContent}\n\n她说：${mood||'（没有留言，只是轻轻敲了你一下）'}`};
+  try{
+    if(typeof emailjs==='undefined')throw new Error('not loaded');
+    emailjs.init({publicKey:EMAILJS_PUBLIC_KEY});
+    await emailjs.send(EMAILJS_SERVICE_ID,EMAILJS_TEMPLATE_ID,params,{publicKey:EMAILJS_PUBLIC_KEY});
+    document.getElementById('pokeModalInner').style.display='none';
+    document.getElementById('pokeSuccessInner').style.display='';
+    const hint=document.getElementById('pokeHint');hint.textContent='木鱼敲响了，他知道你在想他 🌸';hint.style.color='var(--blush)';
+  }catch(e){btn.disabled=false;btn.textContent='发送失败，再试一次';}
+}
+
+// ════ SEAL CLICKS ════
 document.getElementById('sealBtn').addEventListener('click',()=>{
   state.sealClicks=(state.sealClicks||0)+1;save();
   if(state.sealClicks>=3){openModal('secretModal');state.sealClicks=0;save();}
 });
+document.getElementById('secretDot').addEventListener('click',()=>openModal('secretModal'));
 
-// ── SECRET DOT (item 0) ──
-document.getElementById('secretDot').addEventListener('click',()=>{
-  openModal('secretModal');
-});
+// ════ PWA ════
+let deferredPrompt=null;
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;document.getElementById('pwaBar').style.display='flex';});
+window.addEventListener('appinstalled',()=>document.getElementById('pwaBar').style.display='none');
+function installPWA(){if(deferredPrompt){deferredPrompt.prompt();deferredPrompt.userChoice.then(()=>deferredPrompt=null);}}
+if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('/meimei-wishlist/sw.js').catch(()=>{}));}
 
-// ── EMAILJS CONFIG ── 填入你的三个参数 ──
-const EMAILJS_PUBLIC_KEY  = '9yMhCEYhHu5bOqG0p';
-const EMAILJS_SERVICE_ID  = 'service_xwyxdsw';
-const EMAILJS_TEMPLATE_ID = 'template_shugrgp';
-
-(function(){
-  if(typeof emailjs !== 'undefined'){
-    emailjs.init({publicKey: EMAILJS_PUBLIC_KEY});
-  } else {
-    // SDK not yet ready, wait for load
-    window.addEventListener('load', ()=>{
-      if(typeof emailjs !== 'undefined') emailjs.init({publicKey: EMAILJS_PUBLIC_KEY});
-    });
-  }
-})();
-
-// ── MUYU (POKE) ──
-let muyuCount = parseInt(localStorage.getItem('muyu_count')||'0');
-function updateMuyuCount(){
-  const el = document.getElementById('pokeCount');
-  if(muyuCount > 0) el.textContent = `已敲了 ${muyuCount} 下`;
-}
-updateMuyuCount();
-
-function onPokeClick(){
-  // ripple
-  const ripple = document.getElementById('pokeRipple');
-  ripple.classList.remove('go'); void ripple.offsetWidth; ripple.classList.add('go');
-  // muyu swing animation
-  const wrap = document.getElementById('pokeHeartWrap');
-  wrap.classList.remove('poked'); void wrap.offsetWidth; wrap.classList.add('poked');
-  // floating 功德 text
-  const merit = document.getElementById('meritFloat');
-  merit.classList.remove('go'); void merit.offsetWidth; merit.classList.add('go');
-  // increment local count
-  muyuCount++;
-  localStorage.setItem('muyu_count', muyuCount);
-  updateMuyuCount();
-  // open modal after short delay
-  setTimeout(()=> openPokeModal(), 380);
-}
-
-function openPokeModal(){
-  document.getElementById('pokeModalInner').style.display = '';
-  document.getElementById('pokeSuccessInner').style.display = 'none';
-  document.getElementById('pokeMoodInput').value = '';
-  document.getElementById('pokeCharNum').textContent = '0';
-  document.getElementById('pokeSendBtn').disabled = false;
-  document.getElementById('pokeSendBtn').textContent = '拍他一下 🫀';
-  openModal('pokeModal');
-}
-
-function closePokeModal(){
-  closeModal();
-}
-
-function updateCharCount(){
-  const len = document.getElementById('pokeMoodInput').value.length;
-  document.getElementById('pokeCharNum').textContent = len;
-}
-
-function getNow(){
-  const now = new Date();
-  const pad = n => String(n).padStart(2,'0');
-  return `${now.getFullYear()}.${pad(now.getMonth()+1)}.${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
-}
-
-async function sendPoke(){
-  const btn = document.getElementById('pokeSendBtn');
-  const mood = document.getElementById('pokeMoodInput').value.trim();
-  const weatherDesc = document.getElementById('weatherDesc').textContent || '';
-  const weatherTemp = document.getElementById('weatherTemp').textContent || '';
-  const weatherLoc  = document.getElementById('weatherLocation').textContent || '';
-  const timeStr = getNow();
-
-  btn.disabled = true;
-  btn.textContent = '发送中…';
-
-  const templateParams = {
-    to_email:    'zhuyuedong@student.usm.my',
-    from_name:   '媚媚',
-    send_time:   timeStr,
-    mood:        mood || '（没有留言，只是轻轻敲了你一下）',
-    weather_loc: weatherLoc,
-    weather_now: weatherTemp + ' ' + weatherDesc,
-    message:     `时间：${timeStr}\n位置天气：${weatherLoc} ${weatherTemp} ${weatherDesc}\n\n她说：${mood || '（没有留言，只是轻轻敲了你一下）'}`,
-  };
-
-  try{
-    // ensure init
-    if(typeof emailjs === 'undefined') throw new Error('emailjs not loaded');
-    emailjs.init({publicKey: EMAILJS_PUBLIC_KEY});
-    console.log('Sending params:', JSON.stringify(templateParams));
-    await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, templateParams, {publicKey: EMAILJS_PUBLIC_KEY});
-    showPokeSuccess();
-  }catch(e){
-    console.error('EmailJS error:', e);
-    btn.disabled = false;
-    btn.textContent = '发送失败，再试一次';
-  }
-}
-
-function showPokeSuccess(){
-  document.getElementById('pokeModalInner').style.display = 'none';
-  document.getElementById('pokeSuccessInner').style.display = '';
-  const hint = document.getElementById('pokeHint');
-  hint.textContent = '木鱼敲响了，他知道你在想他 🌸';
-  hint.style.color = 'var(--blush)';
-}
-
-// ── PWA 安装提示 ──
-let deferredPrompt = null;
-window.addEventListener('beforeinstallprompt', e => {
-  e.preventDefault();
-  deferredPrompt = e;
-  // 显示安装提示条
-  document.getElementById('pwaBar').style.display = 'flex';
-});
-window.addEventListener('appinstalled', () => {
-  document.getElementById('pwaBar').style.display = 'none';
-});
-
-function installPWA(){
-  if(deferredPrompt){
-    deferredPrompt.prompt();
-    deferredPrompt.userChoice.then(()=>{ deferredPrompt=null; });
-  }
-}
-
-// ── Service Worker ──
-if('serviceWorker' in navigator){
-  window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('/meimei-wishlist/sw.js').catch(()=>{});
-  });
-}
-
+// ════ INIT ════
 renderList();
 renderCapsules();
+renderSimpleList('togetherList',state.togetherWishes,'together');
+renderSimpleList('himList',state.himWishes,'him');
+checkFestival();
+buildCountdowns();
+// load cloud data
+loadMessages();
+loadSharedWishes();
+// auto-refresh messages every 30s when on "我们" tab
+setInterval(()=>{
+  if(document.getElementById('tab-we').classList.contains('active')) loadMessages();
+},30000);
 </script>
 </body>
 </html>
