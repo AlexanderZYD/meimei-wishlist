@@ -878,10 +878,11 @@ function renderList(){
         最近：${histArr[histArr.length-1]}
       </div>` : '';
 
-    // all wishes can be edited (pencil icon), user wishes also have delete
+    // all wishes can be edited, user wishes also have delete, done wishes have undo
     const editBtn = `<button class="wish-action-btn" onclick="editWishItem(${idx},'${w.userIdx!=null?'user':'base'}',${w.userIdx!=null?w.userIdx:-1},event)" title="编辑">✎</button>`;
     const deleteBtn = w.userIdx!=null ? `<button class="wish-action-btn" onclick="deleteWish(${w.userIdx},event)" title="删除">×</button>` : '';
-    const actionBtns = !w.isSecret31 ? `<div class="wish-actions">${editBtn}${deleteBtn}</div>` : '';
+    const undoBtn = isDone ? `<button class="wish-action-btn" onclick="undoWish(${idx},event)" title="取消完成" style="font-size:10px;">撤</button>` : '';
+    const actionBtns = !w.isSecret31 ? `<div class="wish-actions">${undoBtn}${editBtn}${deleteBtn}</div>` : '';
 
     li.innerHTML=`
       <div class="checkbox"></div>
@@ -895,42 +896,47 @@ function renderList(){
     if(!w.special && !w.isSecret31){
       li.addEventListener('click',(e)=>{
         if(e.target.classList.contains('wish-action-btn')) return;
-        const adding=!state.done.includes(idx);
-        if(adding){
-          state.done.push(idx);
-          li.classList.add('done');
-          // record completion time
-          if(!state.history[idx]) state.history[idx]=[];
-          state.history[idx].push(new Date().toLocaleDateString('zh-CN'));
-          checkCapsules(idx);
-          save(); updateProgress();
-          // check reward
-          if(WISH_REWARDS[idx]){
-            const r = WISH_REWARDS[idx];
-            document.getElementById('rewardEmoji').textContent = r.emoji;
-            document.getElementById('rewardText').textContent = r.text;
-            spawnPetals();
-            setTimeout(()=>openModal('rewardModal'), 400);
-          } else {
-            const qi=idx>=0&&idx<QUOTES.length?idx:Math.floor(Math.random()*QUOTES.length);
-            const q=QUOTES[qi];
-            document.getElementById('celebWish').textContent=q.w;
-            document.getElementById('celebQuote').textContent=q.q;
-            document.getElementById('celebSource').textContent=q.s;
-            spawnPetals();openModal('celebModal');
-          }
-          // check milestone
-          checkMilestone(state.done.length);
-        }else{
-          state.done=state.done.filter(d=>d!==idx);
-          li.classList.remove('done');
-          save(); updateProgress();
+        // record completion every click (allows multiple completions)
+        if(!state.done.includes(idx)) state.done.push(idx);
+        li.classList.add('done');
+        // record completion time
+        if(!state.history[idx]) state.history[idx]=[];
+        state.history[idx].push(new Date().toLocaleDateString('zh-CN'));
+        checkCapsules(idx);
+        save(); renderList(); updateProgress();
+        // check reward
+        if(WISH_REWARDS[idx]){
+          const r = WISH_REWARDS[idx];
+          document.getElementById('rewardEmoji').textContent = r.emoji;
+          document.getElementById('rewardText').textContent = r.text;
+          spawnPetals();
+          setTimeout(()=>openModal('rewardModal'), 400);
+        } else {
+          const qi=idx>=0&&idx<QUOTES.length?idx:Math.floor(Math.random()*QUOTES.length);
+          const q=QUOTES[qi];
+          document.getElementById('celebWish').textContent=q.w;
+          document.getElementById('celebQuote').textContent=q.q;
+          document.getElementById('celebSource').textContent=q.s;
+          spawnPetals();openModal('celebModal');
         }
+        // check milestone
+        checkMilestone(state.done.length);
       });
     }
     list.appendChild(li);
   });
   updateProgress();
+}
+
+function undoWish(origIdx, e){
+  e.stopPropagation();
+  state.done = state.done.filter(d => d !== origIdx);
+  // remove last history entry
+  if(state.history[origIdx] && state.history[origIdx].length > 0){
+    state.history[origIdx].pop();
+    if(state.history[origIdx].length === 0) delete state.history[origIdx];
+  }
+  save(); renderList();
 }
 
 function editWishItem(origIdx, type, userIdx, e){
