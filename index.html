@@ -234,6 +234,31 @@ body::before{content:'';position:fixed;inset:0;background-image:repeating-linear
 .poke-success-icon{font-size:32px;margin-bottom:8px;}
 .poke-success-text{font-size:13px;color:var(--ink-light);letter-spacing:0.12em;line-height:2;font-weight:300;}
 
+/* MEMORY MODAL */
+.memory-modal-wide{max-width:360px;width:92%;padding:28px 28px 20px;}
+.memory-wish-title{font-size:12px;color:var(--ink-faint);letter-spacing:0.15em;margin-bottom:16px;font-weight:300;}
+.memory-textarea{width:100%;background:transparent;border:none;border-bottom:1px solid var(--paper-aged);padding:8px 4px;font-family:'Noto Serif SC',serif;font-size:13px;color:var(--ink-light);letter-spacing:0.08em;outline:none;font-weight:300;resize:none;line-height:1.8;margin-bottom:4px;}
+.memory-textarea:focus{border-bottom-color:var(--blush);}
+.memory-textarea::placeholder{color:var(--ink-faint);font-size:12px;}
+.memory-char-count{font-size:10px;color:var(--ink-faint);text-align:right;margin-bottom:12px;}
+.memory-location{font-size:11px;color:var(--ink-faint);letter-spacing:0.1em;padding:8px 0;border-top:1px dashed rgba(180,150,120,0.2);margin-bottom:12px;min-height:20px;}
+.memory-location.loading{color:var(--blush);animation:pulse 1.5s ease infinite;}
+@keyframes pulse{0%,100%{opacity:0.5;}50%{opacity:1;}}
+.memory-btns{display:flex;gap:8px;}
+.memory-btn{flex:1;padding:9px;border:0.5px solid var(--blush-light);border-radius:2px;font-family:'Noto Serif SC',serif;font-size:11px;letter-spacing:0.12em;cursor:pointer;transition:background 0.2s;}
+.memory-btn-primary{background:var(--blush-faint);color:#8a4040;}
+.memory-btn-primary:hover{background:var(--blush-light);}
+.memory-btn-skip{background:transparent;color:var(--ink-faint);}
+.memory-btn-skip:hover{background:var(--paper-aged);}
+
+/* MEMORY LIST in wish item */
+.memory-entries{margin-top:6px;}
+.memory-entry{font-size:10px;color:var(--ink-faint);letter-spacing:0.06em;line-height:1.8;padding:4px 0;border-bottom:1px dashed rgba(180,150,120,0.12);}
+.memory-entry:last-child{border-bottom:none;}
+.memory-entry-date{color:var(--blush);margin-right:6px;}
+.memory-entry-loc{color:var(--ink-faint);opacity:0.7;font-size:9px;margin-left:4px;}
+.memory-entry-text{display:block;color:var(--ink-light);font-size:11px;margin-top:1px;}
+
 /* PETALS */
 .petals{position:fixed;inset:0;pointer-events:none;z-index:98;overflow:hidden;}
 .petal{position:absolute;top:-24px;animation:petalFall linear forwards;opacity:0;}
@@ -397,6 +422,20 @@ body::before{content:'';position:fixed;inset:0;background-image:repeating-linear
 
 <!-- OVERLAYS -->
 <div class="overlay" id="overlay" onclick="closeModal()"></div>
+
+<!-- MEMORY MODAL -->
+<div class="modal memory-modal-wide" id="memoryModal">
+  <div class="modal-ornament" style="font-size:15px;">记录这一刻 ✨</div>
+  <div class="modal-divider"></div>
+  <p class="memory-wish-title" id="memoryWishTitle"></p>
+  <textarea class="memory-textarea" id="memoryInput" placeholder="写下此刻的心情……（可以不写）" maxlength="150" rows="3" oninput="document.getElementById('memoryCharCount').textContent=this.value.length"></textarea>
+  <div class="memory-char-count"><span id="memoryCharCount">0</span> / 150</div>
+  <div class="memory-location" id="memoryLocation">📍 获取位置中…</div>
+  <div class="memory-btns">
+    <button class="memory-btn memory-btn-skip" onclick="skipMemory()">跳过</button>
+    <button class="memory-btn memory-btn-primary" onclick="saveMemory()">保存记录</button>
+  </div>
+</div>
 
 <!-- REWARD MODAL -->
 <div class="modal" id="rewardModal">
@@ -872,11 +911,23 @@ function renderList(){
     // show completion history
     const histKey = idx;
     const histArr = state.history && state.history[histKey];
-    const histHtml = histArr && histArr.length > 0 ? `
-      <div class="wish-history">
-        <span class="wish-history-count">✓ ${histArr.length}次</span>
-        最近：${histArr[histArr.length-1]}
-      </div>` : '';
+    let histHtml = '';
+    if(histArr && histArr.length > 0){
+      const entries = histArr.map(h => {
+        const date = typeof h === 'string' ? h : h.date;
+        const text = typeof h === 'object' ? h.text : '';
+        const loc  = typeof h === 'object' ? h.loc  : '';
+        return `<div class="memory-entry">
+          <span class="memory-entry-date">${date}</span>
+          ${loc ? `<span class="memory-entry-loc">📍${loc}</span>` : ''}
+          ${text ? `<span class="memory-entry-text">${text}</span>` : ''}
+        </div>`;
+      }).join('');
+      histHtml = `<div class="memory-entries">
+        <div class="wish-history"><span class="wish-history-count">✓ ${histArr.length}次</span></div>
+        ${entries}
+      </div>`;
+    }
 
     // all wishes can be edited, user wishes also have delete, done wishes have undo
     const editBtn = `<button class="wish-action-btn" onclick="editWishItem(${idx},'${w.userIdx!=null?'user':'base'}',${w.userIdx!=null?w.userIdx:-1},event)" title="编辑">✎</button>`;
@@ -896,30 +947,35 @@ function renderList(){
     if(!w.special && !w.isSecret31){
       li.addEventListener('click',(e)=>{
         if(e.target.classList.contains('wish-action-btn')) return;
-        // record completion every click (allows multiple completions)
         if(!state.done.includes(idx)) state.done.push(idx);
         li.classList.add('done');
-        // record completion time
         if(!state.history[idx]) state.history[idx]=[];
-        state.history[idx].push(new Date().toLocaleDateString('zh-CN'));
+        // record basic entry first, memory modal will enrich it
+        const entryIdx = state.history[idx].length;
+        state.history[idx].push({date: new Date().toLocaleDateString('zh-CN'), text:'', loc:''});
         checkCapsules(idx);
         save(); renderList(); updateProgress();
-        // check reward
+
+        // show celebration/reward first, then memory modal
         if(WISH_REWARDS[idx]){
           const r = WISH_REWARDS[idx];
           document.getElementById('rewardEmoji').textContent = r.emoji;
           document.getElementById('rewardText').textContent = r.text;
           spawnPetals();
-          setTimeout(()=>openModal('rewardModal'), 400);
+          setTimeout(()=>{
+            openModal('rewardModal');
+            setTimeout(()=>openMemoryModal(idx, entryIdx, w.text), 2000);
+          }, 400);
         } else {
           const qi=idx>=0&&idx<QUOTES.length?idx:Math.floor(Math.random()*QUOTES.length);
           const q=QUOTES[qi];
           document.getElementById('celebWish').textContent=q.w;
           document.getElementById('celebQuote').textContent=q.q;
           document.getElementById('celebSource').textContent=q.s;
-          spawnPetals();openModal('celebModal');
+          spawnPetals();
+          openModal('celebModal');
+          setTimeout(()=>openMemoryModal(idx, entryIdx, w.text), 2200);
         }
-        // check milestone
         checkMilestone(state.done.length);
       });
     }
@@ -928,10 +984,80 @@ function renderList(){
   updateProgress();
 }
 
+// ── MEMORY MODAL ──
+let memoryCurrentIdx = null;
+let memoryEntryIdx = null;
+
+function openMemoryModal(wishIdx, entryIdx, wishText){
+  memoryCurrentIdx = wishIdx;
+  memoryEntryIdx = entryIdx;
+  document.getElementById('memoryWishTitle').textContent = '「' + wishText + '」';
+  document.getElementById('memoryInput').value = '';
+  document.getElementById('memoryCharCount').textContent = '0';
+  document.getElementById('memoryLocation').textContent = '📍 获取位置中…';
+  document.getElementById('memoryLocation').className = 'memory-location loading';
+  closeModal();
+  setTimeout(()=>openModal('memoryModal'), 300);
+  // get location
+  getLocationForMemory();
+}
+
+function getLocationForMemory(){
+  if(!navigator.geolocation){
+    document.getElementById('memoryLocation').textContent = '📍 无法获取位置';
+    document.getElementById('memoryLocation').className = 'memory-location';
+    return;
+  }
+  navigator.geolocation.getCurrentPosition(
+    async pos => {
+      try{
+        const {latitude:lat, longitude:lon} = pos.coords;
+        const res = await fetch(`https://restapi.amap.com/v3/geocode/regeo?location=${lon},${lat}&key=6fe2eca2e56e68fbc996e84dd50c22fa&radius=500&extensions=base&output=json`);
+        const data = await res.json();
+        let locStr = '';
+        if(data.status==='1' && data.regeocode){
+          const addr = data.regeocode.addressComponent;
+          const district = addr.district||'';
+          const street = addr.streetNumber&&addr.streetNumber.street ? addr.streetNumber.street : '';
+          const city = addr.city||addr.province||'';
+          locStr = [city, district, street].filter(Boolean).join(' · ');
+        }
+        const el = document.getElementById('memoryLocation');
+        el.textContent = locStr ? '📍 ' + locStr : '📍 位置已获取';
+        el.className = 'memory-location';
+        el.dataset.loc = locStr;
+      }catch(e){
+        document.getElementById('memoryLocation').textContent = '📍 位置获取失败';
+        document.getElementById('memoryLocation').className = 'memory-location';
+      }
+    },
+    ()=>{
+      document.getElementById('memoryLocation').textContent = '📍 未允许定位';
+      document.getElementById('memoryLocation').className = 'memory-location';
+    },
+    {timeout:8000, enableHighAccuracy:false}
+  );
+}
+
+function saveMemory(){
+  const text = document.getElementById('memoryInput').value.trim();
+  const locEl = document.getElementById('memoryLocation');
+  const loc = locEl.dataset.loc || locEl.textContent.replace('📍 ','').trim();
+  if(state.history[memoryCurrentIdx] && state.history[memoryCurrentIdx][memoryEntryIdx]){
+    state.history[memoryCurrentIdx][memoryEntryIdx].text = text;
+    state.history[memoryCurrentIdx][memoryEntryIdx].loc = loc !== '获取位置中…' ? loc : '';
+    save(); renderList();
+  }
+  closeModal();
+}
+
+function skipMemory(){
+  closeModal();
+}
+
 function undoWish(origIdx, e){
   e.stopPropagation();
   state.done = state.done.filter(d => d !== origIdx);
-  // remove last history entry
   if(state.history[origIdx] && state.history[origIdx].length > 0){
     state.history[origIdx].pop();
     if(state.history[origIdx].length === 0) delete state.history[origIdx];
