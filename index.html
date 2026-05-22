@@ -75,6 +75,23 @@ body::before{content:'';position:fixed;inset:0;background-image:repeating-linear
 .badge-item{font-size:10px;padding:3px 10px;border-radius:2px;letter-spacing:0.08em;border:0.5px solid var(--paper-aged);color:var(--ink-faint);background:transparent;transition:all 0.4s;}
 .badge-item.unlocked{background:var(--blush-faint);border-color:var(--blush-light);color:#8a4040;}
 
+/* SEARCH BAR */
+.search-bar{margin-bottom:16px;opacity:0;animation:riseIn 0.7s ease 0.9s forwards;}
+.search-input{width:100%;background:transparent;border:none;border-bottom:1px solid var(--paper-aged);padding:7px 4px;font-family:'Noto Serif SC',serif;font-size:13px;color:var(--ink-light);letter-spacing:0.08em;outline:none;font-weight:300;margin-bottom:10px;}
+.search-input:focus{border-bottom-color:var(--blush);}
+.search-input::placeholder{color:var(--ink-faint);font-size:12px;}
+.filter-tags{display:flex;gap:8px;flex-wrap:wrap;}
+.filter-tag{font-size:10px;padding:3px 10px;border-radius:2px;letter-spacing:0.1em;border:0.5px solid var(--paper-aged);color:var(--ink-faint);cursor:pointer;transition:all 0.2s;background:transparent;}
+.filter-tag.active{background:var(--blush-faint);border-color:var(--blush-light);color:#8a4040;}
+
+/* REWARD MODAL */
+.reward-emoji{font-size:40px;margin-bottom:10px;}
+.reward-text{font-size:13.5px;color:var(--ink-light);line-height:2.1;letter-spacing:0.12em;font-weight:300;white-space:pre-line;margin-bottom:8px;}
+
+/* HISTORY */
+.wish-history{font-size:10px;color:var(--ink-faint);letter-spacing:0.08em;margin-top:4px;line-height:1.7;}
+.wish-history-count{display:inline-block;background:var(--blush-faint);color:var(--blush);border-radius:2px;padding:1px 7px;font-size:10px;margin-right:4px;}
+
 /* WISH LIST */
 .wish-list{list-style:none;}
 .wish-item{display:flex;align-items:flex-start;gap:14px;padding:13px 8px;border-bottom:1px solid rgba(180,150,120,0.11);cursor:pointer;transition:background 0.25s,padding-left 0.25s;opacity:0;animation:riseIn 0.5s ease both;}
@@ -282,9 +299,19 @@ body::before{content:'';position:fixed;inset:0;background-image:repeating-linear
     </div>
     <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
     <div class="achievements">
-      <span class="badge-item" id="badge10">初心 · 完成10条</span>
-      <span class="badge-item" id="badge20">半程 · 完成20条</span>
-      <span class="badge-item" id="badgeAll">圆满 · 全部完成</span>
+      <span class="badge-item" id="badge10" onclick="showMilestone(10)">初心 · 完成10条 🍽️</span>
+      <span class="badge-item" id="badge20" onclick="showMilestone(20)">半程 · 完成20条 📚</span>
+      <span class="badge-item" id="badgeAll" onclick="showMilestone(30)">圆满 · 全部完成 🎁</span>
+    </div>
+  </div>
+
+  <!-- SEARCH -->
+  <div class="search-bar" id="searchBar">
+    <input class="search-input" id="searchInput" placeholder="搜索愿望…" oninput="filterWishes()" />
+    <div class="filter-tags" id="filterTags">
+      <span class="filter-tag active" onclick="setFilter('all',this)">全部</span>
+      <span class="filter-tag" onclick="setFilter('done',this)">已完成</span>
+      <span class="filter-tag" onclick="setFilter('undone',this)">未完成</span>
     </div>
   </div>
 
@@ -370,6 +397,15 @@ body::before{content:'';position:fixed;inset:0;background-image:repeating-linear
 
 <!-- OVERLAYS -->
 <div class="overlay" id="overlay" onclick="closeModal()"></div>
+
+<!-- REWARD MODAL -->
+<div class="modal" id="rewardModal">
+  <div class="reward-emoji" id="rewardEmoji"></div>
+  <div class="modal-ornament">🎀 奖励来了</div>
+  <div class="modal-divider"></div>
+  <p class="reward-text" id="rewardText"></p>
+  <button class="modal-close" onclick="closeModal()">— 收下啦 —</button>
+</div>
 
 <!-- CELEBRATE MODAL -->
 <div class="modal" id="celebModal">
@@ -517,7 +553,19 @@ const ORIGINAL_WISHES = [
   {text:"有人陪我一起完成", pretagDone:"✓ 我们一起"},
 ];
 
-// item 30 (index) = secret "第31条"
+// ── 奖励彩蛋数据（index对应ORIGINAL_WISHES的位置，从0开始）──
+const WISH_REWARDS = {
+  14: { emoji:'🎰', text:'你彩票中50了！\n奖励你现实里的100块，来找我兑换~' },
+  18: { emoji:'🎂', text:'化了漂亮的妆！\n奖励你去吃小蛋糕小甜品，你来选在哪儿！' },
+  22: { emoji:'🍲', text:'冬天手脚不冰凉了！\n奖励你一顿火锅，你来定去哪儿吃！' },
+};
+
+// ── 里程碑奖励 ──
+const MILESTONES = {
+  10: { emoji:'🍽️', text:'完成了10条心愿！\n奖励你一顿你想吃的饭，你来定餐厅，我来买单~' },
+  20: { emoji:'📚', text:'完成了20条心愿！\n奖励你一本你喜欢的书，告诉我想要哪本！' },
+  30: { emoji:'🎁', text:'完成了30条心愿！\n奖励你一个礼物盲盒，充满惊喜，等你来拆！' },
+};
 const WISH_31 = {text:"We wrote our own destiny, and this would always happen…", special:true, tag:"✦ 第三十一条"};
 
 const CAPSULES = [
@@ -563,10 +611,13 @@ const QUOTES = [
 const KEY = 'happiness_v3';
 function loadState(){
   try{const s=localStorage.getItem(KEY);if(s)return JSON.parse(s);}catch(e){}
-  return {done:[28,29], userWishes:[], capsuleOpened:[false,false,false], sealClicks:0};
+  return {done:[28,29], userWishes:[], capsuleOpened:[false,false,false], sealClicks:0, history:{}, shownMilestones:[]};
 }
 function save(){try{localStorage.setItem(KEY,JSON.stringify(state));}catch(e){}}
 let state = loadState();
+// ensure new fields exist for old saves
+if(!state.history) state.history={};
+if(!state.shownMilestones) state.shownMilestones=[];
 
 // ── DAYS with count-up animation ──
 function animateCount(el, target, duration){
@@ -818,21 +869,28 @@ function renderList(){
       ? `<span class="wish-tag">${w.pretagDone}</span>`
       : (w.tag && isDone ? `<span class="wish-tag">${w.tag}</span>` : '');
 
-    // edit/delete buttons for user wishes
-    const editBtns = w.userIdx!=null ? `
-      <div class="wish-actions">
-        <button class="wish-action-btn" onclick="editWish(${w.userIdx},event)" title="编辑">✎</button>
-        <button class="wish-action-btn" onclick="deleteWish(${w.userIdx},event)" title="删除">×</button>
+    // show completion history
+    const histKey = idx;
+    const histArr = state.history && state.history[histKey];
+    const histHtml = histArr && histArr.length > 0 ? `
+      <div class="wish-history">
+        <span class="wish-history-count">✓ ${histArr.length}次</span>
+        最近：${histArr[histArr.length-1]}
       </div>` : '';
+
+    // all wishes can be edited (pencil icon), user wishes also have delete
+    const editBtn = `<button class="wish-action-btn" onclick="editWishItem(${idx},'${w.userIdx!=null?'user':'base'}',${w.userIdx!=null?w.userIdx:-1},event)" title="编辑">✎</button>`;
+    const deleteBtn = w.userIdx!=null ? `<button class="wish-action-btn" onclick="deleteWish(${w.userIdx},event)" title="删除">×</button>` : '';
+    const actionBtns = !w.isSecret31 ? `<div class="wish-actions">${editBtn}${deleteBtn}</div>` : '';
 
     li.innerHTML=`
       <div class="checkbox"></div>
       <span class="wish-num">${numStr}</span>
       <div style="flex:1">
         <div class="wish-text">${w.text}</div>
-        ${tagHtml}
+        ${tagHtml}${histHtml}
       </div>
-      ${editBtns}`;
+      ${actionBtns}`;
 
     if(!w.special && !w.isSecret31){
       li.addEventListener('click',(e)=>{
@@ -841,18 +899,33 @@ function renderList(){
         if(adding){
           state.done.push(idx);
           li.classList.add('done');
+          // record completion time
+          if(!state.history[idx]) state.history[idx]=[];
+          state.history[idx].push(new Date().toLocaleDateString('zh-CN'));
           checkCapsules(idx);
-          const qi=idx>=0&&idx<QUOTES.length?idx:Math.floor(Math.random()*QUOTES.length);
-          const q=QUOTES[qi];
-          document.getElementById('celebWish').textContent=q.w;
-          document.getElementById('celebQuote').textContent=q.q;
-          document.getElementById('celebSource').textContent=q.s;
-          spawnPetals();openModal('celebModal');
+          save(); updateProgress();
+          // check reward
+          if(WISH_REWARDS[idx]){
+            const r = WISH_REWARDS[idx];
+            document.getElementById('rewardEmoji').textContent = r.emoji;
+            document.getElementById('rewardText').textContent = r.text;
+            spawnPetals();
+            setTimeout(()=>openModal('rewardModal'), 400);
+          } else {
+            const qi=idx>=0&&idx<QUOTES.length?idx:Math.floor(Math.random()*QUOTES.length);
+            const q=QUOTES[qi];
+            document.getElementById('celebWish').textContent=q.w;
+            document.getElementById('celebQuote').textContent=q.q;
+            document.getElementById('celebSource').textContent=q.s;
+            spawnPetals();openModal('celebModal');
+          }
+          // check milestone
+          checkMilestone(state.done.length);
         }else{
           state.done=state.done.filter(d=>d!==idx);
           li.classList.remove('done');
+          save(); updateProgress();
         }
-        save();updateProgress();
       });
     }
     list.appendChild(li);
@@ -860,25 +933,81 @@ function renderList(){
   updateProgress();
 }
 
-function editWish(userIdx, e){
+function editWishItem(origIdx, type, userIdx, e){
   e.stopPropagation();
-  const newText = prompt('修改愿望：', state.userWishes[userIdx]);
-  if(newText && newText.trim()){
+  let currentText;
+  if(type==='user') currentText = state.userWishes[userIdx];
+  else currentText = ORIGINAL_WISHES[origIdx].text;
+  const newText = prompt('修改愿望内容：', currentText);
+  if(!newText || !newText.trim()) return;
+  if(type==='user'){
     state.userWishes[userIdx] = newText.trim();
-    save(); renderList();
+  } else {
+    ORIGINAL_WISHES[origIdx].text = newText.trim();
   }
+  save(); renderList();
 }
 
 function deleteWish(userIdx, e){
   e.stopPropagation();
   if(!confirm('确定删除这条愿望吗？')) return;
-  // also remove from done if present
   const origIdx = ORIGINAL_WISHES.length + userIdx;
   state.done = state.done.filter(d => d !== origIdx);
-  // shift done indices for subsequent user wishes
   state.done = state.done.map(d => d > origIdx ? d-1 : d);
   state.userWishes.splice(userIdx, 1);
   save(); renderList();
+}
+
+function showMilestone(n){
+  const ms = MILESTONES[n];
+  if(!ms) return;
+  const unlocked = state.done.length >= n;
+  if(!unlocked){ return; }
+  document.getElementById('rewardEmoji').textContent = ms.emoji;
+  document.getElementById('rewardText').textContent = ms.text;
+  openModal('rewardModal');
+}
+
+function checkMilestone(n){
+  const ms = MILESTONES[n];
+  if(ms && !state.shownMilestones.includes(n)){
+    state.shownMilestones.push(n);
+    save();
+    setTimeout(()=>{
+      document.getElementById('rewardEmoji').textContent = ms.emoji;
+      document.getElementById('rewardText').textContent = ms.text;
+      spawnPetals(); openModal('rewardModal');
+    }, 1200);
+  }
+}
+
+// ── SEARCH & FILTER ──
+let currentFilter = 'all';
+let currentSearch = '';
+
+function setFilter(f, el){
+  currentFilter = f;
+  document.querySelectorAll('.filter-tag').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  applyFilter();
+}
+
+function filterWishes(){
+  currentSearch = document.getElementById('searchInput').value.trim().toLowerCase();
+  applyFilter();
+}
+
+function applyFilter(){
+  document.querySelectorAll('#wishList .wish-item').forEach(li=>{
+    if(li.id==='wish31'){ return; }
+    const text = li.querySelector('.wish-text')?.textContent.toLowerCase()||'';
+    const isDone = li.classList.contains('done');
+    const matchSearch = !currentSearch || text.includes(currentSearch);
+    const matchFilter = currentFilter==='all' ||
+      (currentFilter==='done' && isDone) ||
+      (currentFilter==='undone' && !isDone);
+    li.style.display = (matchSearch && matchFilter) ? '' : 'none';
+  });
 }
 
 // ── ADD WISH ──
