@@ -97,6 +97,11 @@ body::before{content:'';position:fixed;inset:0;background-image:repeating-linear
 
 .wish-tag{font-size:10px;color:#8a4a4a;background:var(--blush-light);padding:2px 9px;border-radius:2px;margin-top:5px;letter-spacing:0.09em;display:inline-block;}
 
+.wish-actions{display:flex;gap:4px;align-items:center;flex-shrink:0;opacity:0;transition:opacity 0.2s;}
+.wish-item:hover .wish-actions{opacity:1;}
+.wish-action-btn{background:none;border:0.5px solid var(--paper-aged);border-radius:2px;width:20px;height:20px;font-size:12px;color:var(--ink-faint);cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;transition:all 0.2s;font-family:serif;}
+.wish-action-btn:hover{background:var(--blush-faint);border-color:var(--blush-light);color:var(--blush);}
+
 /* ADD WISH */
 .add-wish-area{margin-top:20px;padding-top:16px;border-top:1px dashed rgba(180,150,120,0.3);opacity:0;animation:riseIn 0.7s ease 1.6s forwards;}
 .add-wish-btn{display:flex;align-items:center;gap:8px;cursor:pointer;padding:10px 8px;color:var(--ink-faint);font-size:12px;letter-spacing:0.15em;font-family:'Noto Serif SC',serif;background:none;border:none;transition:color 0.2s;}
@@ -775,40 +780,63 @@ function buildWishes(){
   const base=ORIGINAL_WISHES.map((w,i)=>({...w,origIdx:i}));
   const user=state.userWishes.map((w,i)=>({text:w,userIdx:i,origIdx:ORIGINAL_WISHES.length+i}));
   const secret31=[{...WISH_31,origIdx:-1,isSecret31:true}];
+  // secret31 always last, user wishes after base (30 items), so numbering: 1-30 base, 32+ user
   return [...base,...user,...secret31];
 }
 
 function renderList(){
   const list=document.getElementById('wishList');list.innerHTML='';
   const wishes=buildWishes();
-  let displayNum=1;
+  // displayNum: base items are 1-30, user items start at 32, secret31 is always "31"
+  let baseCount=0, userCount=0;
   wishes.forEach((w)=>{
     const idx=w.origIdx;
     const isDone=state.done.includes(idx);
     const li=document.createElement('li');
     li.className='wish-item'+(w.special?' special':'')+(isDone?' done':'')+(w.userIdx!=null?' user-added':'');
-    li.style.animationDelay=(1.0+displayNum*0.04)+'s';
 
     if(w.isSecret31){
       li.id='wish31';
       li.style.display='none';
       li.style.opacity='0';
+      li.style.animationDelay='0s';
+    } else if(w.userIdx!=null){
+      userCount++;
+      li.style.animationDelay=(1.0+(30+userCount)*0.04)+'s';
+    } else {
+      baseCount++;
+      li.style.animationDelay=(1.0+baseCount*0.04)+'s';
     }
 
-    const numStr=w.isSecret31?'31':String(displayNum).padStart(2,'0');
+    // numbering: base=1~30, secret31=31, user=32+
+    let numStr;
+    if(w.isSecret31) numStr='31';
+    else if(w.userIdx!=null) numStr=String(31+userCount).padStart(2,'0');
+    else numStr=String(baseCount).padStart(2,'0');
+
     const tagHtml = w.pretagDone
       ? `<span class="wish-tag">${w.pretagDone}</span>`
       : (w.tag && isDone ? `<span class="wish-tag">${w.tag}</span>` : '');
+
+    // edit/delete buttons for user wishes
+    const editBtns = w.userIdx!=null ? `
+      <div class="wish-actions">
+        <button class="wish-action-btn" onclick="editWish(${w.userIdx},event)" title="编辑">✎</button>
+        <button class="wish-action-btn" onclick="deleteWish(${w.userIdx},event)" title="删除">×</button>
+      </div>` : '';
+
     li.innerHTML=`
       <div class="checkbox"></div>
       <span class="wish-num">${numStr}</span>
       <div style="flex:1">
         <div class="wish-text">${w.text}</div>
         ${tagHtml}
-      </div>`;
+      </div>
+      ${editBtns}`;
 
     if(!w.special && !w.isSecret31){
-      li.addEventListener('click',()=>{
+      li.addEventListener('click',(e)=>{
+        if(e.target.classList.contains('wish-action-btn')) return;
         const adding=!state.done.includes(idx);
         if(adding){
           state.done.push(idx);
@@ -827,10 +855,30 @@ function renderList(){
         save();updateProgress();
       });
     }
-    if(!w.isSecret31) displayNum++;
     list.appendChild(li);
   });
   updateProgress();
+}
+
+function editWish(userIdx, e){
+  e.stopPropagation();
+  const newText = prompt('修改愿望：', state.userWishes[userIdx]);
+  if(newText && newText.trim()){
+    state.userWishes[userIdx] = newText.trim();
+    save(); renderList();
+  }
+}
+
+function deleteWish(userIdx, e){
+  e.stopPropagation();
+  if(!confirm('确定删除这条愿望吗？')) return;
+  // also remove from done if present
+  const origIdx = ORIGINAL_WISHES.length + userIdx;
+  state.done = state.done.filter(d => d !== origIdx);
+  // shift done indices for subsequent user wishes
+  state.done = state.done.map(d => d > origIdx ? d-1 : d);
+  state.userWishes.splice(userIdx, 1);
+  save(); renderList();
 }
 
 // ── ADD WISH ──
