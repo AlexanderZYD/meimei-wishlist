@@ -26,6 +26,7 @@ self.addEventListener('fetch', e => {
   const url = e.request.url;
   // 跳过所有外部API请求，只缓存本地资源
   if(url.includes('supabase.co') ||
+     url.includes('jsonbin.io') ||
      url.includes('amap.com') ||
      url.includes('open-meteo.com') ||
      url.includes('emailjs.com') ||
