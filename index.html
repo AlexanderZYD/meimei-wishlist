@@ -713,7 +713,30 @@ function loadState(){
   try{const s=localStorage.getItem(KEY);if(s)return JSON.parse(s);}catch(e){}
   return {done:[28,29],userWishes:[],capsuleOpened:[false,false,false],sealClicks:0,history:{},shownMilestones:[],messages:[],togetherWishes:[],himWishes:[]};
 }
-function save(){try{localStorage.setItem(KEY,JSON.stringify(state));}catch(e){}}
+function save(){
+  try{localStorage.setItem(KEY,JSON.stringify(state));}catch(e){}
+}
+// save wishlist state to cloud (debounced)
+let saveCloudTimer=null;
+function saveCloud(){
+  clearTimeout(saveCloudTimer);
+  saveCloudTimer=setTimeout(()=>saveWishlistCloud(),800);
+}
+async function saveWishlistCloud(){
+  await sbUpsert('shared_state',{id:'wishlist',data:{done:state.done,userWishes:state.userWishes,history:state.history,capsuleOpened:state.capsuleOpened,shownMilestones:state.shownMilestones},updated_at:new Date().toISOString()});
+}
+async function loadWishlistCloud(){
+  const row=await sbGetOne('shared_state','wishlist');
+  if(row&&row.data){
+    const d=row.data;
+    if(d.done) state.done=d.done;
+    if(d.userWishes) state.userWishes=d.userWishes;
+    if(d.history) state.history=d.history;
+    if(d.capsuleOpened) state.capsuleOpened=d.capsuleOpened;
+    if(d.shownMilestones) state.shownMilestones=d.shownMilestones;
+    save();
+  }
+}
 let state=loadState();
 if(!state.history) state.history={};
 if(!state.shownMilestones) state.shownMilestones=[];
@@ -982,7 +1005,7 @@ function renderCapsules(){
 function checkCapsules(idx){
   CAPSULES.forEach((cap,i)=>{
     if(!state.capsuleOpened[i]&&idx===cap.trigger){
-      state.capsuleOpened[i]=true;save();renderCapsules();
+      state.capsuleOpened[i]=true;save();saveCloud();renderCapsules();
       setTimeout(()=>{spawnPetals();document.getElementById('capTitle').textContent=cap.title;document.getElementById('capContent').textContent=cap.content;openModal('capsuleModal');},800);
     }
   });
@@ -1046,7 +1069,7 @@ function renderList(){
         if(!state.history[idx])state.history[idx]=[];
         const entryIdx=state.history[idx].length;
         state.history[idx].push({date:new Date().toLocaleDateString('zh-CN'),text:'',loc:''});
-        checkCapsules(idx);save();renderList();updateProgress();
+        checkCapsules(idx);save();saveCloud();renderList();updateProgress();
         if(WISH_REWARDS[idx]){
           const r=WISH_REWARDS[idx];
           document.getElementById('rewardEmoji').textContent=r.emoji;
@@ -1100,7 +1123,7 @@ function saveMemory(){
   if(state.history[memCurrentIdx]&&state.history[memCurrentIdx][memEntryIdx]){
     state.history[memCurrentIdx][memEntryIdx].text=text;
     state.history[memCurrentIdx][memEntryIdx].loc=loc==='获取位置中…'||loc==='获取失败'||loc==='未允许定位'?'':loc;
-    save();renderList();
+    save();saveCloud();renderList();
   }
   closeModal();
 }
@@ -1111,27 +1134,27 @@ function undoWish(origIdx,e){
   e.stopPropagation();
   state.done=state.done.filter(d=>d!==origIdx);
   if(state.history[origIdx]&&state.history[origIdx].length>0){state.history[origIdx].pop();if(state.history[origIdx].length===0)delete state.history[origIdx];}
-  save();renderList();
+  save();saveCloud();renderList();
 }
 function editWishItem(origIdx,type,userIdx,e){
   e.stopPropagation();
   const cur=type==='user'?state.userWishes[userIdx]:ORIGINAL_WISHES[origIdx].text;
   const nv=prompt('修改愿望：',cur);
-  if(nv&&nv.trim()){if(type==='user')state.userWishes[userIdx]=nv.trim();else ORIGINAL_WISHES[origIdx].text=nv.trim();save();renderList();}
+  if(nv&&nv.trim()){if(type==='user')state.userWishes[userIdx]=nv.trim();else ORIGINAL_WISHES[origIdx].text=nv.trim();save();saveCloud();renderList();}
 }
 function deleteWish(userIdx,e){
   e.stopPropagation();
   if(!confirm('确定删除这条愿望吗？'))return;
   const origIdx=ORIGINAL_WISHES.length+userIdx;
   state.done=state.done.filter(d=>d!==origIdx).map(d=>d>origIdx?d-1:d);
-  state.userWishes.splice(userIdx,1);save();renderList();
+  state.userWishes.splice(userIdx,1);save();saveCloud();renderList();
 }
 
 // ════ ADD WISH ════
 function toggleAddForm(){const f=document.getElementById('addWishForm');f.classList.toggle('open');if(f.classList.contains('open'))document.getElementById('addWishInput').focus();}
 function submitWish(){
   const inp=document.getElementById('addWishInput');const val=inp.value.trim();
-  if(!val)return;state.userWishes.push(val);save();inp.value='';document.getElementById('addWishForm').classList.remove('open');renderList();
+  if(!val)return;state.userWishes.push(val);save();saveCloud();inp.value='';document.getElementById('addWishForm').classList.remove('open');renderList();
 }
 document.getElementById('addWishInput').addEventListener('keydown',e=>{if(e.key==='Enter')submitWish();});
 
@@ -1351,19 +1374,23 @@ function installPWA(){if(deferredPrompt){deferredPrompt.prompt();deferredPrompt.
 if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('/meimei-wishlist/sw.js').catch(()=>{}));}
 
 // ════ INIT ════
-renderList();
-renderCapsules();
-renderSimpleList('togetherList',state.togetherWishes,'together');
-renderSimpleList('himList',state.himWishes,'him');
 checkFestival();
 buildCountdowns();
-// load cloud data
+// load cloud data first, then render
+(async()=>{
+  await loadWishlistCloud();
+  renderList();
+  renderCapsules();
+})();
+renderSimpleList('togetherList',state.togetherWishes,'together');
+renderSimpleList('himList',state.himWishes,'him');
 loadMessages();
 loadSharedWishes();
-// auto-refresh messages every 30s when on "我们" tab
 setInterval(()=>{
   if(document.getElementById('tab-we').classList.contains('active')) loadMessages();
-},30000);
+  // sync wishlist every 60s
+  loadWishlistCloud().then(()=>{renderList();renderCapsules();});
+},60000);
 </script>
 </body>
 </html>
