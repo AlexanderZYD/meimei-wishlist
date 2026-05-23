@@ -1420,15 +1420,15 @@ if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.se
 // ════ INIT ════
 checkFestival();
 buildCountdowns();
-(async()=>{
-  await loadWishlistCloud();
-  renderList();
-  renderCapsules();
-  updateWeStats();
-})();
+// 先用本地数据立即渲染，不等云端
+renderList();
+renderCapsules();
+updateWeStats();
 renderSimpleList('togetherList',state.togetherWishes||[],'together');
 renderSimpleList('himList',state.himWishes||[],'him');
 renderMessages();
+// 再异步从云端更新
+loadWishlistCloud().then(()=>{renderList();renderCapsules();updateWeStats();});
 setInterval(()=>{
   loadWishlistCloud().then(()=>{renderList();renderCapsules();updateWeStats();});
 },60000);
