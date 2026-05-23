@@ -832,7 +832,7 @@ async function loadWishlistCloud(){
 let state=loadState();
 if(!state.history) state.history={};
 if(!state.shownMilestones) state.shownMilestones=[];
-if(!state.messages) state.messages=[];
+if(!state.messages||!Array.isArray(state.messages)) state.messages=[];
 if(!state.togetherWishes) state.togetherWishes=[];
 if(!state.himWishes) state.himWishes=[];
 
@@ -1289,7 +1289,7 @@ function renderMessages(){
   const list=document.getElementById('msgList');
   if(!list) return;
   list.innerHTML='';
-  const msgs=state.messages||[];
+  const msgs=Array.isArray(state.messages)?state.messages:[];
   if(msgs.length===0){
     list.innerHTML='<div style="text-align:center;font-size:11px;color:var(--ink-faint);padding:20px;letter-spacing:0.1em;">还没有寄语，写第一条吧~</div>';
     return;
