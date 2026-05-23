@@ -1263,15 +1263,18 @@ async function sendMsg(){
   const btn=document.querySelector('.msg-send-btn');
   btn.disabled=true;btn.textContent='发送中…';
   const msg={who:currentWho,text:val,date:new Date().toLocaleString('zh-CN',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}),id:Date.now()};
-  // save locally first
   if(!state.messages)state.messages=[];
   state.messages.unshift(msg);
   if(state.messages.length>100)state.messages.pop();
   save();
-  // sync to cloud
-  await cloudSaveMessage(msg);
+  try{
+    await cloudSaveMessage(msg);
+    await loadMessages();
+  }catch(e){
+    console.error('sendMsg error:',e);
+    renderMessages();
+  }
   inp.value='';btn.disabled=false;btn.textContent='记下';
-  await loadMessages();
 }
 async function loadMessages(){
   // try cloud first
