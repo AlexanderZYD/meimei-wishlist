@@ -1,4 +1,4 @@
-const CACHE = 'meimei-v1';
+const CACHE = 'meimei-v2';
 const ASSETS = [
   '/meimei-wishlist/',
   '/meimei-wishlist/index.html',
@@ -23,7 +23,18 @@ self.addEventListener('activate', e => {
 });
 
 self.addEventListener('fetch', e => {
+  const url = e.request.url;
+  // 跳过所有外部API请求，只缓存本地资源
+  if(url.includes('supabase.co') ||
+     url.includes('amap.com') ||
+     url.includes('open-meteo.com') ||
+     url.includes('emailjs.com') ||
+     url.includes('googleapis.com') ||
+     url.includes('jsdelivr.net') ||
+     !url.startsWith('https://alexanderzyd.github.io')){
+    return; // 让浏览器直接处理
+  }
   e.respondWith(
-    caches.match(e.request).then(cached => cached || fetch(e.request).catch(() => cached))
+    caches.match(e.request).then(cached => cached || fetch(e.request))
   );
 });
