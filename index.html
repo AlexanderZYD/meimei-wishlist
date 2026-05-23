@@ -1203,10 +1203,10 @@ function selectWho(who){
 async function sendMsg(){
   const inp=document.getElementById('msgInput');const val=inp.value.trim();
   if(!val)return;
-  const btn=inp.nextElementSibling;
+  const btn=document.querySelector('.msg-send-btn');
   btn.disabled=true;btn.textContent='发送中…';
   const date=new Date().toLocaleString('zh-CN',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'});
-  await sbInsert('messages',{who:currentWho,text:val,date});
+  const result = await sbInsert('messages',{who:currentWho,text:val,date});
   inp.value='';btn.disabled=false;btn.textContent='发送';
   await loadMessages();
 }
