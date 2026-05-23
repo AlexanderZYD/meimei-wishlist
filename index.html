@@ -781,7 +781,7 @@ async function cloudDeleteMessage(id){
 const KEY = 'happiness_v4';
 function loadState(){
   try{const s=localStorage.getItem(KEY);if(s)return JSON.parse(s);}catch(e){}
-  return {done:[28,29],userWishes:[],capsuleOpened:[false,false,false],sealClicks:0,history:{},shownMilestones:[],togetherWishes:[],himWishes:[]};
+  return {done:[28,29],userWishes:[],capsuleOpened:[false,false,false],sealClicks:0,history:{},shownMilestones:[],togetherWishes:[],himWishes:[],updatedAt:0};
 }
 function save(){
   try{localStorage.setItem(KEY,JSON.stringify(state));}catch(e){}
@@ -789,19 +789,37 @@ function save(){
 let saveCloudTimer=null;
 function saveCloud(){
   clearTimeout(saveCloudTimer);
-  saveCloudTimer=setTimeout(()=>{
-    cloudSave({done:state.done,userWishes:state.userWishes,history:state.history,capsuleOpened:state.capsuleOpened,shownMilestones:state.shownMilestones});
-  },1000);
+  saveCloudTimer=setTimeout(async()=>{
+    const data={
+      done:state.done,
+      userWishes:state.userWishes,
+      history:state.history,
+      capsuleOpened:state.capsuleOpened,
+      shownMilestones:state.shownMilestones,
+      updatedAt:Date.now()
+    };
+    console.log('saving to cloud:', data.done);
+    await cloudSave(data);
+  },500);
 }
 async function loadWishlistCloud(){
   const d = await cloudLoad();
-  if(d){
-    if(d.done) state.done=d.done;
-    if(d.userWishes) state.userWishes=d.userWishes;
-    if(d.history) state.history=d.history;
-    if(d.capsuleOpened) state.capsuleOpened=d.capsuleOpened;
-    if(d.shownMilestones) state.shownMilestones=d.shownMilestones;
+  console.log('cloudLoad result:', d);
+  if(!d) return;
+  // only override local if cloud data is newer
+  const cloudTime = d.updatedAt || 0;
+  const localTime = state.updatedAt || 0;
+  if(cloudTime >= localTime){
+    state.done = d.done || [28,29];
+    state.userWishes = d.userWishes || [];
+    state.history = d.history || {};
+    state.capsuleOpened = d.capsuleOpened || [false,false,false];
+    state.shownMilestones = d.shownMilestones || [];
+    state.updatedAt = cloudTime;
     save();
+    console.log('loaded from cloud, done:', state.done);
+  } else {
+    console.log('local is newer, keeping local data');
   }
 }
 let state=loadState();
