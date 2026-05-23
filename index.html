@@ -708,6 +708,27 @@ const QUOTES = [
 ];
 
 // ════ STATE ════
+// ════ SUPABASE (must be defined before STATE) ════
+const SB_URL = 'https://jozhipoulabghatuuqs.supabase.co';
+const SB_KEY = 'sb_publishable_g1KTJxi5-P-d4JUSAnw9xQ_yDrqH0l0';
+const sbHeaders = {'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'X-Client-Info':'supabase-js/2.0.0'};
+
+async function sbGet(table,order='created_at',limit=50){
+  try{const r=await fetch(`${SB_URL}/rest/v1/${table}?order=${order}.desc&limit=${limit}`,{headers:sbHeaders});if(!r.ok){console.error('sbGet',r.status);return [];}return await r.json();}catch(e){console.error('sbGet',e);return [];}
+}
+async function sbInsert(table,data){
+  try{const r=await fetch(`${SB_URL}/rest/v1/${table}`,{method:'POST',headers:{...sbHeaders,'Prefer':'return=representation'},body:JSON.stringify(data)});if(!r.ok){console.error('sbInsert',r.status,await r.text());return null;}return await r.json();}catch(e){console.error('sbInsert',e);return null;}
+}
+async function sbDelete(table,id){
+  try{const r=await fetch(`${SB_URL}/rest/v1/${table}?id=eq.${id}`,{method:'DELETE',headers:sbHeaders});if(!r.ok)console.error('sbDelete',r.status);}catch(e){console.error('sbDelete',e);}
+}
+async function sbUpsert(table,data){
+  try{const r=await fetch(`${SB_URL}/rest/v1/${table}`,{method:'POST',headers:{...sbHeaders,'Prefer':'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(data)});if(!r.ok)console.error('sbUpsert',r.status,await r.text());}catch(e){console.error('sbUpsert',e);}
+}
+async function sbGetOne(table,id){
+  try{const r=await fetch(`${SB_URL}/rest/v1/${table}?id=eq.${id}`,{headers:sbHeaders});if(!r.ok){console.error('sbGetOne',r.status);return null;}const d=await r.json();return d&&d[0]?d[0]:null;}catch(e){console.error('sbGetOne',e);return null;}
+}
+
 const KEY = 'happiness_v4';
 function loadState(){
   try{const s=localStorage.getItem(KEY);if(s)return JSON.parse(s);}catch(e){}
@@ -1157,41 +1178,6 @@ function submitWish(){
   if(!val)return;state.userWishes.push(val);save();saveCloud();inp.value='';document.getElementById('addWishForm').classList.remove('open');renderList();
 }
 document.getElementById('addWishInput').addEventListener('keydown',e=>{if(e.key==='Enter')submitWish();});
-
-// ════ SUPABASE ════
-const SB_URL = 'https://jozhipoulabghatuuqs.supabase.co';
-const SB_KEY = 'sb_publishable_g1KTJxi5-P-d4JUSAnw9xQ_yDrqH0l0';
-const sbHeaders = {'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY};
-
-async function sbGet(table, order='created_at', limit=50){
-  try{
-    const r = await fetch(`${SB_URL}/rest/v1/${table}?order=${order}.desc&limit=${limit}`, {headers:sbHeaders});
-    return await r.json();
-  }catch(e){return [];}
-}
-async function sbInsert(table, data){
-  try{
-    const r = await fetch(`${SB_URL}/rest/v1/${table}`, {method:'POST',headers:{...sbHeaders,'Prefer':'return=representation'},body:JSON.stringify(data)});
-    return await r.json();
-  }catch(e){return null;}
-}
-async function sbDelete(table, id){
-  try{
-    await fetch(`${SB_URL}/rest/v1/${table}?id=eq.${id}`, {method:'DELETE',headers:sbHeaders});
-  }catch(e){}
-}
-async function sbUpsert(table, data){
-  try{
-    await fetch(`${SB_URL}/rest/v1/${table}`, {method:'POST',headers:{...sbHeaders,'Prefer':'resolution=merge-duplicates'},body:JSON.stringify(data)});
-  }catch(e){}
-}
-async function sbGetOne(table, id){
-  try{
-    const r = await fetch(`${SB_URL}/rest/v1/${table}?id=eq.${id}`, {headers:sbHeaders});
-    const d = await r.json();
-    return d&&d[0]?d[0]:null;
-  }catch(e){return null;}
-}
 
 // ════ MESSAGES (cloud) ════
 let currentWho='him';
