@@ -798,15 +798,25 @@ function saveCloud(){
       shownMilestones:state.shownMilestones,
       updatedAt:Date.now()
     };
-    console.log('saving to cloud:', data.done);
     await cloudSave(data);
   },500);
 }
+async function saveCloudNow(){
+  const data={
+    done:state.done,
+    userWishes:state.userWishes,
+    history:state.history,
+    capsuleOpened:state.capsuleOpened,
+    shownMilestones:state.shownMilestones,
+    updatedAt:Date.now()
+  };
+  state.updatedAt = data.updatedAt;
+  save();
+  await cloudSave(data);
+}
 async function loadWishlistCloud(){
   const d = await cloudLoad();
-  console.log('cloudLoad result:', d);
   if(!d) return;
-  // only override local if cloud data is newer
   const cloudTime = d.updatedAt || 0;
   const localTime = state.updatedAt || 0;
   if(cloudTime >= localTime){
@@ -817,9 +827,6 @@ async function loadWishlistCloud(){
     state.shownMilestones = d.shownMilestones || [];
     state.updatedAt = cloudTime;
     save();
-    console.log('loaded from cloud, done:', state.done);
-  } else {
-    console.log('local is newer, keeping local data');
   }
 }
 let state=loadState();
@@ -1154,7 +1161,7 @@ function renderList(){
         if(!state.history[idx])state.history[idx]=[];
         const entryIdx=state.history[idx].length;
         state.history[idx].push({date:new Date().toLocaleDateString('zh-CN'),text:'',loc:''});
-        checkCapsules(idx);save();saveCloud();renderList();updateProgress();
+        checkCapsules(idx);save();saveCloudNow();renderList();updateProgress();
         if(WISH_REWARDS[idx]){
           const r=WISH_REWARDS[idx];
           document.getElementById('rewardEmoji').textContent=r.emoji;
@@ -1208,7 +1215,7 @@ function saveMemory(){
   if(state.history[memCurrentIdx]&&state.history[memCurrentIdx][memEntryIdx]){
     state.history[memCurrentIdx][memEntryIdx].text=text;
     state.history[memCurrentIdx][memEntryIdx].loc=loc==='获取位置中…'||loc==='获取失败'||loc==='未允许定位'?'':loc;
-    save();saveCloud();renderList();
+    save();saveCloudNow();renderList();
   }
   closeModal();
 }
@@ -1219,7 +1226,7 @@ function undoWish(origIdx,e){
   e.stopPropagation();
   state.done=state.done.filter(d=>d!==origIdx);
   if(state.history[origIdx]&&state.history[origIdx].length>0){state.history[origIdx].pop();if(state.history[origIdx].length===0)delete state.history[origIdx];}
-  save();saveCloud();renderList();
+  save();saveCloudNow();renderList();
 }
 function editWishItem(origIdx,type,userIdx,e){
   e.stopPropagation();
