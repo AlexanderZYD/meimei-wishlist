@@ -153,6 +153,14 @@ body.festival-monthly{--paper:#fdf8ff;--blush:#c060d0;--blush-light:#e8b8f5;--bl
 .sec-title{font-size:10px;color:var(--ink-faint);letter-spacing:0.2em;text-align:center;margin:24px 0 14px;position:relative;}
 .sec-title::before,.sec-title::after{content:'·';margin:0 8px;}
 
+/* ── WE TAB STATS ── */
+.we-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:24px;}
+.we-stat-card{padding:14px 8px;border:0.5px solid var(--paper-aged);border-radius:4px;background:rgba(255,255,255,0.5);text-align:center;}
+.we-stat-card.highlight{border-color:var(--blush-light);background:var(--blush-faint);}
+.we-stat-num{font-family:'Ma Shan Zheng',cursive;font-size:26px;color:var(--blush);line-height:1;margin-bottom:4px;}
+.we-stat-label{font-size:9px;color:var(--ink-faint);letter-spacing:0.1em;font-weight:300;}
+.diary-hint{text-align:center;font-size:10px;color:var(--ink-faint);letter-spacing:0.12em;margin-bottom:14px;font-weight:300;}
+
 /* ── WE TAB ── */
 .msg-board{margin-bottom:20px;}
 .msg-input-area{display:flex;gap:8px;align-items:flex-end;margin-bottom:14px;}
@@ -402,19 +410,38 @@ body.festival-monthly{--paper:#fdf8ff;--blush:#c060d0;--blush-light:#e8b8f5;--bl
 <div class="tab-page" id="tab-we">
 <div class="page-inner">
 
+  <!-- 我们的数字 -->
+  <div class="we-stats">
+    <div class="we-stat-card">
+      <div class="we-stat-num" id="weDoneCount">0</div>
+      <div class="we-stat-label">完成的心愿</div>
+    </div>
+    <div class="we-stat-card highlight">
+      <div class="we-stat-num" id="weDaysTogether">0</div>
+      <div class="we-stat-label">在一起的天数</div>
+    </div>
+    <div class="we-stat-card">
+      <div class="we-stat-num" id="weTogetherCount">0</div>
+      <div class="we-stat-label">共同的愿望</div>
+    </div>
+  </div>
+
+  <!-- 每日寄语（本地日记）-->
   <div class="sec-title">每日寄语</div>
+  <div class="diary-hint">· 写给自己看的小纸条，记录此刻的心情 ·</div>
   <div class="msg-board">
     <div class="msg-who">
       <button class="msg-who-btn active" id="btnHim" onclick="selectWho('him')">嘟教授说</button>
       <button class="msg-who-btn" id="btnHer" onclick="selectWho('her')">媚媚说</button>
     </div>
     <div style="display:flex;gap:8px;align-items:flex-end;">
-      <textarea class="msg-textarea" id="msgInput" placeholder="写下今天想对她/他说的话…" rows="2" maxlength="200"></textarea>
-      <button class="msg-send-btn" onclick="sendMsg()">发送</button>
+      <textarea class="msg-textarea" id="msgInput" placeholder="写下今天想说的话…" rows="2" maxlength="200"></textarea>
+      <button class="msg-send-btn" onclick="sendMsg()">记下</button>
     </div>
   </div>
   <div class="msg-list" id="msgList"></div>
 
+  <!-- 共同愿望 -->
   <div class="sec-title">共同愿望</div>
   <ul class="wish-list" id="togetherList"></ul>
   <div class="add-wish-area">
@@ -427,6 +454,7 @@ body.festival-monthly{--paper:#fdf8ff;--blush:#c060d0;--blush-light:#e8b8f5;--bl
     </div>
   </div>
 
+  <!-- 嘟教授的愿望 -->
   <div class="sec-title">嘟教授的愿望</div>
   <ul class="wish-list" id="himList"></ul>
   <div class="add-wish-area">
@@ -708,48 +736,66 @@ const QUOTES = [
 ];
 
 // ════ STATE ════
-// ════ SUPABASE (must be defined before STATE) ════
-const SB_URL = 'https://jozhipoulabghatuuqs.supabase.co';
-const SB_KEY = 'sb_publishable_g1KTJxi5-P-d4JUSAnw9xQ_yDrqH0l0';
-const sbHeaders = {'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'X-Client-Info':'supabase-js/2.0.0'};
+// ════ VERCEL API (云端同步) ════
+const API_BASE = 'https://meimei-api.vercel.app';
 
-async function sbGet(table,order='created_at',limit=50){
-  try{const r=await fetch(`${SB_URL}/rest/v1/${table}?order=${order}.desc&limit=${limit}`,{headers:sbHeaders});if(!r.ok){console.error('sbGet',r.status);return [];}return await r.json();}catch(e){console.error('sbGet',e);return [];}
+async function cloudLoad(){
+  try{
+    const r = await fetch(`${API_BASE}/api/wishlist`);
+    if(!r.ok){console.error('cloudLoad error:',r.status);return null;}
+    return await r.json();
+  }catch(e){console.error('cloudLoad:',e);return null;}
 }
-async function sbInsert(table,data){
-  try{const r=await fetch(`${SB_URL}/rest/v1/${table}`,{method:'POST',headers:{...sbHeaders,'Prefer':'return=representation'},body:JSON.stringify(data)});if(!r.ok){console.error('sbInsert',r.status,await r.text());return null;}return await r.json();}catch(e){console.error('sbInsert',e);return null;}
+async function cloudSave(data){
+  try{
+    const r = await fetch(`${API_BASE}/api/wishlist`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(data)
+    });
+    if(!r.ok) console.error('cloudSave error:',r.status);
+  }catch(e){console.error('cloudSave:',e);}
 }
-async function sbDelete(table,id){
-  try{const r=await fetch(`${SB_URL}/rest/v1/${table}?id=eq.${id}`,{method:'DELETE',headers:sbHeaders});if(!r.ok)console.error('sbDelete',r.status);}catch(e){console.error('sbDelete',e);}
+async function cloudLoadMessages(){
+  try{
+    const r = await fetch(`${API_BASE}/api/messages`);
+    if(!r.ok) return [];
+    return await r.json();
+  }catch(e){return [];}
 }
-async function sbUpsert(table,data){
-  try{const r=await fetch(`${SB_URL}/rest/v1/${table}`,{method:'POST',headers:{...sbHeaders,'Prefer':'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(data)});if(!r.ok)console.error('sbUpsert',r.status,await r.text());}catch(e){console.error('sbUpsert',e);}
+async function cloudSaveMessage(msg){
+  try{
+    await fetch(`${API_BASE}/api/messages`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(msg)
+    });
+  }catch(e){console.error('cloudSaveMessage:',e);}
 }
-async function sbGetOne(table,id){
-  try{const r=await fetch(`${SB_URL}/rest/v1/${table}?id=eq.${id}`,{headers:sbHeaders});if(!r.ok){console.error('sbGetOne',r.status);return null;}const d=await r.json();return d&&d[0]?d[0]:null;}catch(e){console.error('sbGetOne',e);return null;}
+async function cloudDeleteMessage(id){
+  try{
+    await fetch(`${API_BASE}/api/messages?id=${id}`,{method:'DELETE'});
+  }catch(e){}
 }
 
 const KEY = 'happiness_v4';
 function loadState(){
   try{const s=localStorage.getItem(KEY);if(s)return JSON.parse(s);}catch(e){}
-  return {done:[28,29],userWishes:[],capsuleOpened:[false,false,false],sealClicks:0,history:{},shownMilestones:[],messages:[],togetherWishes:[],himWishes:[]};
+  return {done:[28,29],userWishes:[],capsuleOpened:[false,false,false],sealClicks:0,history:{},shownMilestones:[],togetherWishes:[],himWishes:[]};
 }
 function save(){
   try{localStorage.setItem(KEY,JSON.stringify(state));}catch(e){}
 }
-// save wishlist state to cloud (debounced)
 let saveCloudTimer=null;
 function saveCloud(){
   clearTimeout(saveCloudTimer);
-  saveCloudTimer=setTimeout(()=>saveWishlistCloud(),800);
-}
-async function saveWishlistCloud(){
-  await sbUpsert('shared_state',{id:'wishlist',data:{done:state.done,userWishes:state.userWishes,history:state.history,capsuleOpened:state.capsuleOpened,shownMilestones:state.shownMilestones},updated_at:new Date().toISOString()});
+  saveCloudTimer=setTimeout(()=>{
+    cloudSave({done:state.done,userWishes:state.userWishes,history:state.history,capsuleOpened:state.capsuleOpened,shownMilestones:state.shownMilestones});
+  },1000);
 }
 async function loadWishlistCloud(){
-  const row=await sbGetOne('shared_state','wishlist');
-  if(row&&row.data){
-    const d=row.data;
+  const d = await cloudLoad();
+  if(d){
     if(d.done) state.done=d.done;
     if(d.userWishes) state.userWishes=d.userWishes;
     if(d.history) state.history=d.history;
@@ -771,7 +817,7 @@ function switchTab(tabId, navEl){
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   document.getElementById(tabId).classList.add('active');
   navEl.classList.add('active');
-  if(tabId==='tab-we'){loadMessages();loadSharedWishes();}
+  if(tabId==='tab-we'){loadMessages();updateWeStats();}
 }
 
 // ════ FESTIVAL DETECTION ════
@@ -1179,7 +1225,7 @@ function submitWish(){
 }
 document.getElementById('addWishInput').addEventListener('keydown',e=>{if(e.key==='Enter')submitWish();});
 
-// ════ MESSAGES (cloud) ════
+// ════ MESSAGES (云端同步) ════
 let currentWho='him';
 function selectWho(who){
   currentWho=who;
@@ -1191,21 +1237,36 @@ async function sendMsg(){
   if(!val)return;
   const btn=document.querySelector('.msg-send-btn');
   btn.disabled=true;btn.textContent='发送中…';
-  const date=new Date().toLocaleString('zh-CN',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'});
-  const result = await sbInsert('messages',{who:currentWho,text:val,date});
-  inp.value='';btn.disabled=false;btn.textContent='发送';
+  const msg={who:currentWho,text:val,date:new Date().toLocaleString('zh-CN',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}),id:Date.now()};
+  // save locally first
+  if(!state.messages)state.messages=[];
+  state.messages.unshift(msg);
+  if(state.messages.length>100)state.messages.pop();
+  save();
+  // sync to cloud
+  await cloudSaveMessage(msg);
+  inp.value='';btn.disabled=false;btn.textContent='记下';
   await loadMessages();
 }
 async function loadMessages(){
+  // try cloud first
+  const cloudMsgs = await cloudLoadMessages();
+  if(cloudMsgs && cloudMsgs.length>0){
+    state.messages = cloudMsgs;
+    save();
+  }
+  renderMessages();
+}
+function renderMessages(){
   const list=document.getElementById('msgList');
-  list.innerHTML='<div style="text-align:center;font-size:11px;color:var(--ink-faint);padding:12px;letter-spacing:0.1em;">加载中…</div>';
-  const msgs=await sbGet('messages','created_at',50);
+  if(!list) return;
   list.innerHTML='';
-  if(!msgs||msgs.length===0){
-    list.innerHTML='<div style="text-align:center;font-size:11px;color:var(--ink-faint);padding:20px;letter-spacing:0.1em;">还没有留言，写第一条吧~</div>';
+  const msgs=state.messages||[];
+  if(msgs.length===0){
+    list.innerHTML='<div style="text-align:center;font-size:11px;color:var(--ink-faint);padding:20px;letter-spacing:0.1em;">还没有寄语，写第一条吧~</div>';
     return;
   }
-  msgs.forEach(m=>{
+  msgs.forEach((m)=>{
     const div=document.createElement('div');
     div.className='msg-item from-'+(m.who==='him'?'him':'her');
     div.innerHTML=`<div class="msg-meta"><span class="msg-author">${m.who==='him'?'嘟教授说':'媚媚说'}</span><div style="display:flex;align-items:center;gap:6px;"><span class="msg-date">${m.date}</span><button class="msg-delete" onclick="deleteMsg(${m.id})">×</button></div></div><div class="msg-text">${m.text}</div>`;
@@ -1213,63 +1274,23 @@ async function loadMessages(){
   });
 }
 async function deleteMsg(id){
-  if(!confirm('确定删除这条留言？'))return;
-  await sbDelete('messages',id);
-  await loadMessages();
+  if(!confirm('确定删除这条寄语？'))return;
+  state.messages=(state.messages||[]).filter(m=>m.id!==id);
+  save();renderMessages();
+  await cloudDeleteMessage(id);
 }
-
-// ════ SHARED STATE (together/him wishes synced) ════
-async function loadSharedWishes(){
-  const row = await sbGetOne('shared_state','wishes');
-  if(row&&row.data){
-    if(row.data.togetherWishes) state.togetherWishes=row.data.togetherWishes;
-    if(row.data.himWishes) state.himWishes=row.data.himWishes;
-    save();
-  }
-  renderSimpleList('togetherList',state.togetherWishes,'together');
-  renderSimpleList('himList',state.himWishes,'him');
-}
-async function saveSharedWishes(){
-  await sbUpsert('shared_state',{id:'wishes',data:{togetherWishes:state.togetherWishes,himWishes:state.himWishes},updated_at:new Date().toISOString()});
-}
-
-// override submitTogether and submitHim to also sync
-async function submitTogether(){
-  const inp=document.getElementById('addTogetherInput');const val=inp.value.trim();
-  if(!val)return;state.togetherWishes.push(val);save();
-  inp.value='';document.getElementById('addTogetherForm').classList.remove('open');
-  renderSimpleList('togetherList',state.togetherWishes,'together');
-  await saveSharedWishes();
-}
-async function submitHim(){
-  const inp=document.getElementById('addHimInput');const val=inp.value.trim();
-  if(!val)return;state.himWishes.push(val);save();
-  inp.value='';document.getElementById('addHimForm').classList.remove('open');
-  renderSimpleList('himList',state.himWishes,'him');
-  await saveSharedWishes();
-}
-async function editSimple(prefix,i,e){
-  e.stopPropagation();
-  const arr=prefix==='together'?state.togetherWishes:state.himWishes;
-  const nv=prompt('修改：',arr[i]);
-  if(nv&&nv.trim()){
-    arr[i]=nv.trim();save();
-    renderSimpleList(prefix==='together'?'togetherList':'himList',arr,prefix);
-    await saveSharedWishes();
-  }
-}
-async function deleteSimple(prefix,i,e){
-  e.stopPropagation();
-  const arr=prefix==='together'?state.togetherWishes:state.himWishes;
-  if(!confirm('确定删除？'))return;
-  arr.splice(i,1);save();
-  renderSimpleList(prefix==='together'?'togetherList':'himList',arr,prefix);
-  await saveSharedWishes();
+function loadSharedWishes(){
+  renderSimpleList('togetherList',state.togetherWishes||[],'together');
+  renderSimpleList('himList',state.himWishes||[],'him');
 }
 
 // ════ TOGETHER / HIM WISHES ════
 function renderSimpleList(listId,wishes,prefix){
-  const list=document.getElementById(listId);list.innerHTML='';
+  const list=document.getElementById(listId);if(!list)return;list.innerHTML='';
+  if(!wishes||wishes.length===0){
+    list.innerHTML='<div style="text-align:center;font-size:11px;color:var(--ink-faint);padding:12px;letter-spacing:0.1em;">还没有愿望，添加第一条吧~</div>';
+    return;
+  }
   wishes.forEach((w,i)=>{
     const li=document.createElement('li');li.className='wish-item';
     li.innerHTML=`<div class="checkbox" style="margin-top:3px;"></div><span class="wish-num">${String(i+1).padStart(2,'0')}</span><div style="flex:1"><div class="wish-text">${w}</div></div><div class="wish-actions"><button class="wish-action-btn" onclick="editSimple('${prefix}',${i},event)">✎</button><button class="wish-action-btn" onclick="deleteSimple('${prefix}',${i},event)">×</button></div>`;
@@ -1279,22 +1300,31 @@ function renderSimpleList(listId,wishes,prefix){
 function toggleAddForm2(){const f=document.getElementById('addTogetherForm');f.classList.toggle('open');if(f.classList.contains('open'))document.getElementById('addTogetherInput').focus();}
 function submitTogether(){
   const inp=document.getElementById('addTogetherInput');const val=inp.value.trim();
-  if(!val)return;state.togetherWishes.push(val);save();inp.value='';document.getElementById('addTogetherForm').classList.remove('open');renderSimpleList('togetherList',state.togetherWishes,'together');
+  if(!val)return;if(!state.togetherWishes)state.togetherWishes=[];state.togetherWishes.push(val);save();saveCloud();inp.value='';document.getElementById('addTogetherForm').classList.remove('open');renderSimpleList('togetherList',state.togetherWishes,'together');updateWeStats();
 }
 function toggleAddForm3(){const f=document.getElementById('addHimForm');f.classList.toggle('open');if(f.classList.contains('open'))document.getElementById('addHimInput').focus();}
 function submitHim(){
   const inp=document.getElementById('addHimInput');const val=inp.value.trim();
-  if(!val)return;state.himWishes.push(val);save();inp.value='';document.getElementById('addHimForm').classList.remove('open');renderSimpleList('himList',state.himWishes,'him');
+  if(!val)return;if(!state.himWishes)state.himWishes=[];state.himWishes.push(val);save();saveCloud();inp.value='';document.getElementById('addHimForm').classList.remove('open');renderSimpleList('himList',state.himWishes,'him');
 }
 function editSimple(prefix,i,e){
   e.stopPropagation();
   const arr=prefix==='together'?state.togetherWishes:state.himWishes;
-  const nv=prompt('修改：',arr[i]);if(nv&&nv.trim()){arr[i]=nv.trim();save();renderSimpleList(prefix==='together'?'togetherList':'himList',arr,prefix);}
+  const nv=prompt('修改：',arr[i]);
+  if(nv&&nv.trim()){arr[i]=nv.trim();save();saveCloud();renderSimpleList(prefix==='together'?'togetherList':'himList',arr,prefix);}
 }
 function deleteSimple(prefix,i,e){
   e.stopPropagation();
   const arr=prefix==='together'?state.togetherWishes:state.himWishes;
-  if(!confirm('确定删除？'))return;arr.splice(i,1);save();renderSimpleList(prefix==='together'?'togetherList':'himList',arr,prefix);
+  if(!confirm('确定删除？'))return;arr.splice(i,1);save();saveCloud();renderSimpleList(prefix==='together'?'togetherList':'himList',arr,prefix);updateWeStats();
+}
+function updateWeStats(){
+  const doneEl=document.getElementById('weDoneCount');
+  const togetherEl=document.getElementById('weTogetherCount');
+  const daysEl=document.getElementById('weDaysTogether');
+  if(doneEl) doneEl.textContent=state.done?state.done.length:0;
+  if(togetherEl) togetherEl.textContent=state.togetherWishes?state.togetherWishes.length:0;
+  if(daysEl) daysEl.textContent=calcDays('2025-05-26');
 }
 document.getElementById('addTogetherInput').addEventListener('keydown',e=>{if(e.key==='Enter')submitTogether();});
 document.getElementById('addHimInput').addEventListener('keydown',e=>{if(e.key==='Enter')submitHim();});
@@ -1362,20 +1392,17 @@ if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.se
 // ════ INIT ════
 checkFestival();
 buildCountdowns();
-// load cloud data first, then render
 (async()=>{
   await loadWishlistCloud();
   renderList();
   renderCapsules();
+  updateWeStats();
 })();
-renderSimpleList('togetherList',state.togetherWishes,'together');
-renderSimpleList('himList',state.himWishes,'him');
-loadMessages();
-loadSharedWishes();
+renderSimpleList('togetherList',state.togetherWishes||[],'together');
+renderSimpleList('himList',state.himWishes||[],'him');
+renderMessages();
 setInterval(()=>{
-  if(document.getElementById('tab-we').classList.contains('active')) loadMessages();
-  // sync wishlist every 60s
-  loadWishlistCloud().then(()=>{renderList();renderCapsules();});
+  loadWishlistCloud().then(()=>{renderList();renderCapsules();updateWeStats();});
 },60000);
 </script>
 </body>
