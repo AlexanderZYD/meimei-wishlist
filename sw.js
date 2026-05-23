@@ -1,4 +1,4 @@
-const CACHE = 'meimei-v2';
+const CACHE = 'meimei-v3';
 const ASSETS = [
   '/meimei-wishlist/',
   '/meimei-wishlist/index.html',
