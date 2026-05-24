@@ -1,4 +1,4 @@
-const CACHE = 'meimei-v4';
+const CACHE = 'meimei-v5';
 
 self.addEventListener('install', e => {
   self.skipWaiting();
@@ -15,6 +15,12 @@ self.addEventListener('activate', e => {
 
 self.addEventListener('fetch', e => {
   const url = e.request.url;
+
+  // HTML / 导航请求始终优先走网络，避免页面更新后仍显示旧版本
+  if (e.request.mode === 'navigate') {
+    e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
+    return;
+  }
   
   // 永远不缓存这些，直接走网络
   if(
