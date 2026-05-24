@@ -1,22 +1,13 @@
-const CACHE = 'meimei-v3';
-const ASSETS = [
-  '/meimei-wishlist/',
-  '/meimei-wishlist/index.html',
-  '/meimei-wishlist/manifest.json',
-  '/meimei-wishlist/icon.svg'
-];
+const CACHE = 'meimei-v4';
 
 self.addEventListener('install', e => {
-  e.waitUntil(
-    caches.open(CACHE).then(c => c.addAll(ASSETS)).catch(()=>{})
-  );
   self.skipWaiting();
 });
 
 self.addEventListener('activate', e => {
   e.waitUntil(
     caches.keys().then(keys =>
-      Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
+      Promise.all(keys.map(k => caches.delete(k)))
     )
   );
   self.clients.claim();
@@ -24,20 +15,39 @@ self.addEventListener('activate', e => {
 
 self.addEventListener('fetch', e => {
   const url = e.request.url;
-  // 跳过所有外部API请求，只缓存本地资源
-  if(url.includes('supabase.co') ||
-     url.includes('jsonbin.io') ||
-     url.includes('vercel.app') ||
-     url.includes('upstash.io') ||
-     url.includes('amap.com') ||
-     url.includes('open-meteo.com') ||
-     url.includes('emailjs.com') ||
-     url.includes('googleapis.com') ||
-     url.includes('jsdelivr.net') ||
-     !url.startsWith('https://alexanderzyd.github.io')){
-    return; // 让浏览器直接处理
+  
+  // 永远不缓存这些，直接走网络
+  if(
+    url.includes('index.html') ||
+    url.includes('meimei-wishlist/') && !url.includes('.') ||
+    url.includes('supabase.co') ||
+    url.includes('jsonbin.io') ||
+    url.includes('vercel.app') ||
+    url.includes('upstash.io') ||
+    url.includes('amap.com') ||
+    url.includes('open-meteo.com') ||
+    url.includes('emailjs.com') ||
+    url.includes('googleapis.com') ||
+    url.includes('jsdelivr.net')
+  ){
+    e.respondWith(fetch(e.request).catch(() => new Response('offline')));
+    return;
   }
-  e.respondWith(
-    caches.match(e.request).then(cached => cached || fetch(e.request))
-  );
+  
+  // 只缓存图标等静态资源
+  if(url.includes('.png') || url.includes('.svg') || url.includes('manifest.json')){
+    e.respondWith(
+      caches.match(e.request).then(cached => 
+        cached || fetch(e.request).then(r => {
+          const clone = r.clone();
+          caches.open(CACHE).then(c => c.put(e.request, clone));
+          return r;
+        })
+      )
+    );
+    return;
+  }
+  
+  // 其他请求直接走网络
+  e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
 });
