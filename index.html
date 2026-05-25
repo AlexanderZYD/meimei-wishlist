@@ -687,6 +687,7 @@ function defaultState(){
     himWishes:[],
     messages:[],
     muyuCount:0,
+    diamondShown:false,
     updatedAt:0
   };
 }
@@ -704,6 +705,7 @@ function buildWishlistPayload(source){
     togetherWishes:Array.isArray(next.togetherWishes)?next.togetherWishes:[],
     himWishes:Array.isArray(next.himWishes)?next.himWishes:[],
     muyuCount:Number.isFinite(next.muyuCount)?next.muyuCount:0,
+    diamondShown:Boolean(next.diamondShown),
     updatedAt:Number.isFinite(next.updatedAt)?next.updatedAt:0
   };
 }
@@ -755,6 +757,7 @@ function normalizeState(data){
     himWishes:normalizeCheckableWishes(next.himWishes),
     messages:Array.isArray(next.messages)?next.messages:base.messages,
     muyuCount:Number.isFinite(next.muyuCount)?next.muyuCount:base.muyuCount,
+    diamondShown:Boolean(next.diamondShown),
     sealClicks:Number.isFinite(next.sealClicks)?next.sealClicks:base.sealClicks,
     secretWishUnlocked:Boolean(next.secretWishUnlocked),
     updatedAt:Number.isFinite(next.updatedAt)?next.updatedAt:base.updatedAt
@@ -1253,9 +1256,17 @@ function openDiamondAfterCurrentModal(){
 
 // ════ PROGRESS ════
 function allWishes(){return ORIGINAL_WISHES.length+state.userWishes.length;}
-let diamondShown=false;
+function ensureDiamondShownMigration(total){
+  if(total<=0||state.diamondShown||state.updatedAt<=0)return;
+  if(Array.isArray(state.done)&&state.done.length>=total){
+    state.diamondShown=true;
+    save();
+    saveCloudNow();
+  }
+}
 function updateProgress(){
   const n=state.done.length,total=allWishes();
+  ensureDiamondShownMigration(total);
   document.getElementById('doneCount').textContent=n;
   document.getElementById('totalCount').textContent=total;
   const percent=total>0?Math.round(n/total*100):0;
@@ -1269,8 +1280,17 @@ function updateProgress(){
     if(allDone||state.secretWishUnlocked){s31.style.display='flex';setTimeout(()=>{s31.style.transition='opacity 1.2s ease';s31.style.opacity='1';},50);}
     else{s31.style.display='none';}
   }
-  if(allDone&&!diamondShown&&!suppressDiamondAutoOpen){diamondShown=true;openDiamondAfterCurrentModal();}
-  if(!allDone)diamondShown=false;
+  if(allDone&&!state.diamondShown&&!suppressDiamondAutoOpen){
+    state.diamondShown=true;
+    save();
+    saveCloudNow();
+    openDiamondAfterCurrentModal();
+  }
+  if(!allDone&&state.diamondShown){
+    state.diamondShown=false;
+    save();
+    saveCloudNow();
+  }
 }
 function unlockSecretWish(){
   if(state.secretWishUnlocked)return;
@@ -1423,7 +1443,9 @@ function renderList(){
           runAfterManualModalClose(()=>{
             openModal('rewardModal');
             if(isFinalWish){
-              diamondShown=true;
+              state.diamondShown=true;
+              save();
+              saveCloudNow();
               runFinalWishSequence('rewardModal',idx,entryIdx,w.text,milestoneReward,unlockedCapsule);
               return;
             }
@@ -1436,7 +1458,9 @@ function renderList(){
             renderList();
             updateProgress();
             if(isFinalWish){
-              diamondShown=true;
+              state.diamondShown=true;
+              save();
+              saveCloudNow();
               runFinalWishSequence('',idx,entryIdx,w.text,milestoneReward,unlockedCapsule);
               return;
             }
@@ -1450,7 +1474,9 @@ function renderList(){
           document.getElementById('celebSource').textContent=q.s;
           spawnPetals();openModal('celebModal');
           if(isFinalWish){
-            diamondShown=true;
+            state.diamondShown=true;
+            save();
+            saveCloudNow();
             runFinalWishSequence('celebModal',idx,entryIdx,w.text,milestoneReward,unlockedCapsule);
             return;
           }
