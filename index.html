@@ -1533,7 +1533,7 @@ function skipMemory(){closeModal();}
 function undoWish(origIdx,e){
   e.stopPropagation();
   state.done=state.done.filter(d=>d!==origIdx);
-  if(state.history[origIdx]&&state.history[origIdx].length>0){state.history[origIdx].pop();if(state.history[origIdx].length===0)delete state.history[origIdx];}
+  if(state.history[origIdx])delete state.history[origIdx];
   resetCapsulesForWish(origIdx);
   save();saveCloudNow();renderList();
 }
@@ -1704,7 +1704,7 @@ async function toggleCheckableWish(prefix,i){
     };
     arr[i].history.push(entry);
   }else if(arr[i].history.length>0){
-    arr[i].history.pop();
+    arr[i].history=[];
   }
   save();saveCloud();renderSimpleList(prefix==='together'?'togetherList':'himList',arr,prefix);updateWeStats();
   if(!arr[i].done)return;
